@@ -1,0 +1,16 @@
+FROM golang:1.14.6
+
+# fetch dependencies
+WORKDIR /app/
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY main.go .
+COPY ./pulsar ./pulsar
+RUN ls -l
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o prometheus-pulsar-remote-write .
+
+FROM alpine:3.12
+COPY --from=0 /app/prometheus-pulsar-remote-write /usr/local/bin/prometheus-pulsar-remote-write
+USER nobody
+ENTRYPOINT ["prometheus-pulsar-remote-write"]

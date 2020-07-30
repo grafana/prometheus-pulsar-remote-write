@@ -158,7 +158,7 @@ func parseFlags() *config {
 		Default(":9201").StringVar(&cfg.listenAddr)
 	a.Flag("web.telemetry-path", "Address to listen on for web endpoints.").
 		Default("/metrics").StringVar(&cfg.telemetryPath)
-	a.Flag("pulsar.url", "The URL of the remote Pulsar server to send samples to. None, if empty").
+	a.Flag("pulsar.url", "The URL of the remote Pulsar server to send samples to. Example: pulsar://pulsar-proxy:6650. None, if empty.").
 		Default("").StringVar(&cfg.pulsarURL)
 	a.Flag("pulsar.connection-timeout", "The timeout to use when connection to the remote Pulsar server.").
 		Default("30s").DurationVar(&cfg.pulsarConnectTimeout)

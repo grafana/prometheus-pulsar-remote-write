@@ -3,7 +3,7 @@ module github.com/grafana/prometheus-pulsar-remote-write
 go 1.14
 
 require (
-	github.com/apache/pulsar-client-go v0.0.0-00010101000000-000000000000
+	github.com/apache/pulsar-client-go v0.1.2-0.20200729045024-c0cba320e933
 	github.com/go-kit/kit v0.10.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/snappy v0.0.1
@@ -19,12 +19,3 @@ require (
 
 // This avoids some depreaction warning
 replace github.com/golang/protobuf => github.com/golang/protobuf v1.3.5
-
-// TODO: Move back to upstream once those two PRs are merged:
-//
-// Fixes go.mod issue with invalid version
-// https://github.com/apache/pulsar-client-go/pull/330
-//
-// Fix producer goroutine leak
-// https://github.com/apache/pulsar-client-go/pull/331
-replace github.com/apache/pulsar-client-go => github.com/simonswine/pulsar-client-go v0.1.2-0.20200723122534-1ea6107fea8b

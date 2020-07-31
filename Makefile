@@ -18,7 +18,7 @@ bench: ## Run all benchmarks
 	go test -bench . ./...
 
 lint: ## Lint
-	GO111MODULE=on GOGC=10 golangci-lint run
+	golangci-lint run ./...
 
 .PHONY: image
 image: ## Build docker image

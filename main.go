@@ -37,6 +37,7 @@ import (
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/prometheus/prompb"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/grafana/prometheus-pulsar-remote-write/pulsar"
@@ -135,6 +136,11 @@ func main() {
 	http.Handle(cfg.telemetryPath, promhttp.Handler())
 
 	logger := promlog.New(&cfg.promlogConfig)
+
+	// reduce verbosity of logrus which is used by the pulsar golang library
+	if cfg.promlogConfig.Level.String() != "debug" {
+		logrus.SetLevel(logrus.WarnLevel)
+	}
 
 	writers, readers := buildClients(logger, cfg)
 	if err := serve(logger, cfg.listenAddr, writers, readers); err != nil {

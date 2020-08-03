@@ -37,6 +37,7 @@ import (
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/prometheus/prompb"
+	"github.com/sebest/xff"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -262,8 +263,20 @@ func serve(logger log.Logger, cfg *config, server *http.Server, writers []writer
 	mux := http.NewServeMux()
 	mux.Handle(cfg.telemetryPath, promhttp.Handler())
 
+	// setup X-Forwarded-For handler with default config. This allows the IP to
+	// be rewritten by reverse proxies and checks for IP addresses within the
+	// private range
+	xffHandler, err := xff.Default()
+	if err != nil {
+		return err
+	}
+
 	middleware := func(next http.HandlerFunc) http.Handler {
-		return mcontext.TenantIDHandler(next)
+		return xffHandler.Handler(
+			mcontext.ClientIPHandler(
+				mcontext.TenantIDHandler(next),
+			),
+		)
 	}
 
 	mux.Handle("/write", middleware(func(w http.ResponseWriter, r *http.Request) {

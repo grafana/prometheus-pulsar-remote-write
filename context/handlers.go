@@ -16,3 +16,9 @@ func TenantIDHandler(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ContextWithTenantID(r.Context(), tenantID)))
 	})
 }
+
+func ClientIPHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r.WithContext(ContextWithClientIP(r.Context(), r.RemoteAddr)))
+	})
+}

@@ -17,9 +17,16 @@ test: ## Run all tests
 bench: ## Run all benchmarks
 	go test -bench . ./...
 
+.PHONY: lint
 lint: ## Lint
 	golangci-lint run ./...
 
 .PHONY: image
 image: ## Build docker image
 	docker build -t grafana/prometheus-pulsar-remote-write .
+
+.drone/drone.yml: .drone/drone.jsonnet ## Update the CI configuration file
+	drone jsonnet --target $@ --format --stream --source $<
+
+prometheus-pulsar-remote-write.sha256: prometheus-pulsar-remote-write ## Produce SHA256 checksum for the go binary
+	sha256sum $< | cut -b -64 > $@

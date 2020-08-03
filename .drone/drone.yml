@@ -1,0 +1,61 @@
+---
+kind: pipeline
+name: check
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: test
+  image: golang:1.14-stretch
+  commands:
+  - make test
+
+- name: bench
+  image: golang:1.14-stretch
+  commands:
+  - make bench
+
+- name: build
+  image: golang:1.14-stretch
+  commands:
+  - make build
+
+---
+kind: pipeline
+name: release
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: build
+  image: golang:1.14-stretch
+  commands:
+  - make build
+
+- name: prometheus-pulsar-remote-write.sha256
+  image: golang:1.14-stretch
+  commands:
+  - make prometheus-pulsar-remote-write.sha256
+
+- name: github-release
+  image: plugins/github-release
+  settings:
+    api_key:
+      from_secret: github_token
+    files:
+    - prometheus-pulsar-remote-write
+    - prometheus-pulsar-remote-write.sha256
+    title: ${DRONE_TAG}
+
+trigger:
+  event:
+  - tag
+
+depends_on:
+- check
+
+...

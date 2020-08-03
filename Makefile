@@ -1,4 +1,5 @@
 GIT_BRANCH := $(shell git branch --show-current)
+GIT_SHA    := $(shell git rev-parse --short HEAD)
 
 # from https://suva.sh/posts/well-documented-makefiles/
 .PHONY: help
@@ -32,5 +33,5 @@ prometheus-pulsar-remote-write.sha256: prometheus-pulsar-remote-write ## Produce
 	sha256sum $< | cut -b -64 > $@
 
 build-image/.uptodate: build-image/Dockerfile .git/refs/heads/$(GIT_BRANCH)
-	docker build -t prometheus-pulsar-remote-write-build-image build-image
+	docker build -t prometheus-pulsar-remote-write-build-image:$(GIT_SHA) build-image
 	touch $@

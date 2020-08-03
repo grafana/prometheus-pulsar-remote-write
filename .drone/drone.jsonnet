@@ -26,28 +26,29 @@ local pipeline(name) = {
       },
     ],
   },
+
   pipeline('check') {
     depends_on: ['prelude'],
     steps: [
       make('lint'),
       make('test'),
       make('bench'),
-      make('build'),
+      make('binaries'),
     ],
   },
 
   pipeline('release') {
     depends_on: ['check'],
     steps: [
-      make('build'),
-      make('prometheus-pulsar-remote-write.sha256'),
+      make('binaries'),
+      make('shas'),
       {
         name: 'github-release',
         image: 'plugins/github-release',
         settings: {
           title: '${DRONE_TAG}',
           api_key: { from_secret: 'github_token' },
-          files: ['prometheus-pulsar-remote-write', 'prometheus-pulsar-remote-write.sha256'],
+          files: ['dist/*'],
         },
       },
     ],

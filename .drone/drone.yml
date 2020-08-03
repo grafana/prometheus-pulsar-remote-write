@@ -8,7 +8,7 @@ platform:
 
 steps:
 - name: make -B .drone/drone.yml
-  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:54feccc
   commands:
   - make -B .drone/drone.yml
   - git diff --exit-code
@@ -23,24 +23,24 @@ platform:
 
 steps:
 - name: make lint
-  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:54feccc
   commands:
   - make lint
 
 - name: make test
-  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:54feccc
   commands:
   - make test
 
 - name: make bench
-  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:54feccc
   commands:
   - make bench
 
-- name: make build
-  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
+- name: make binaries
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:54feccc
   commands:
-  - make build
+  - make binaries
 
 depends_on:
 - prelude
@@ -54,15 +54,15 @@ platform:
   arch: amd64
 
 steps:
-- name: make build
-  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
+- name: make binaries
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:54feccc
   commands:
-  - make build
+  - make binaries
 
-- name: make prometheus-pulsar-remote-write.sha256
-  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
+- name: make shas
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:54feccc
   commands:
-  - make prometheus-pulsar-remote-write.sha256
+  - make shas
 
 - name: github-release
   image: plugins/github-release
@@ -70,8 +70,7 @@ steps:
     api_key:
       from_secret: github_token
     files:
-    - prometheus-pulsar-remote-write
-    - prometheus-pulsar-remote-write.sha256
+    - dist/*
     title: ${DRONE_TAG}
 
 trigger:

@@ -28,9 +28,9 @@ lint: ## Lint
 image: ## Build docker image
 	docker build -t grafana/prometheus-pulsar-remote-write .
 
-.drone/drone.yml: .drone/drone.jsonnet ## Update the CI configuration file
+.drone/drone.yml: .drone/drone.jsonnet Makefile ## Update the CI configuration file
 	drone jsonnet --target $@ --format --stream --source $<\
-		--extVar BUILD_IMAGE=$(BUILD_IMAGE):7ee8ff6
+		--extVar BUILD_IMAGE=$(BUILD_IMAGE):54feccc
 
 BIN_SUFFIXES := linux-amd64 linux-arm64 darwin-amd64 windows-amd64.exe
 BINARIES     := $(patsubst %, dist/prometheus-pulsar-remote-write-%, $(BIN_SUFFIXES))
@@ -55,6 +55,7 @@ build-image/.uptodate: build-image/Dockerfile .git/refs/heads/$(GIT_BRANCH) ## B
 
 build-image/.published: build-image/.uptodate ## Publish docker image used in CI builds
 	docker push $(BUILD_IMAGE):$(GIT_SHA)
+	touch $@
 
 .PHONY: clean
 clean:

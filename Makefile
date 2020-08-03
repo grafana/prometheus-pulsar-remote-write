@@ -1,4 +1,4 @@
-GIT_BRANCH := $(shell git branch --show-current)
+GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 GIT_SHA    := $(shell git rev-parse --short HEAD)
 
 BUILD_IMAGE := jdbgrafana/prometheus-pulsar-remote-write-build-image

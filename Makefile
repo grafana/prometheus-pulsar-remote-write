@@ -1,4 +1,4 @@
-# This makefile provider some wrapper around bazel targets
+GIT_BRANCH := $(shell git branch --show-current)
 
 # from https://suva.sh/posts/well-documented-makefiles/
 .PHONY: help
@@ -30,3 +30,7 @@ image: ## Build docker image
 
 prometheus-pulsar-remote-write.sha256: prometheus-pulsar-remote-write ## Produce SHA256 checksum for the go binary
 	sha256sum $< | cut -b -64 > $@
+
+build-image/.uptodate: build-image/Dockerfile .git/refs/heads/$(GIT_BRANCH)
+	docker build -t prometheus-pulsar-remote-write-build-image build-image
+	touch $@

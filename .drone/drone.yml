@@ -8,17 +8,17 @@ platform:
 
 steps:
 - name: test
-  image: golang:1.14-stretch
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
   commands:
   - make test
 
 - name: bench
-  image: golang:1.14-stretch
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
   commands:
   - make bench
 
 - name: build
-  image: golang:1.14-stretch
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
   commands:
   - make build
 
@@ -32,12 +32,12 @@ platform:
 
 steps:
 - name: build
-  image: golang:1.14-stretch
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
   commands:
   - make build
 
 - name: prometheus-pulsar-remote-write.sha256
-  image: golang:1.14-stretch
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
   commands:
   - make prometheus-pulsar-remote-write.sha256
 

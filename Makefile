@@ -1,6 +1,8 @@
 GIT_BRANCH := $(shell git branch --show-current)
 GIT_SHA    := $(shell git rev-parse --short HEAD)
 
+BUILD_IMAGE := jdbgrafana/prometheus-pulsar-remote-write-build-image
+
 # from https://suva.sh/posts/well-documented-makefiles/
 .PHONY: help
 help:  ## Display this help
@@ -27,11 +29,15 @@ image: ## Build docker image
 	docker build -t grafana/prometheus-pulsar-remote-write .
 
 .drone/drone.yml: .drone/drone.jsonnet ## Update the CI configuration file
-	drone jsonnet --target $@ --format --stream --source $<
+	drone jsonnet --target $@ --format --stream --source $<\
+		--extVar BUILD_IMAGE=$(BUILD_IMAGE):7ee8ff6
 
 prometheus-pulsar-remote-write.sha256: prometheus-pulsar-remote-write ## Produce SHA256 checksum for the go binary
 	sha256sum $< | cut -b -64 > $@
 
-build-image/.uptodate: build-image/Dockerfile .git/refs/heads/$(GIT_BRANCH)
-	docker build -t prometheus-pulsar-remote-write-build-image:$(GIT_SHA) build-image
+build-image/.uptodate: build-image/Dockerfile .git/refs/heads/$(GIT_BRANCH) ## Build docker image used in CI builds
+	docker build -t $(BUILD_IMAGE):$(GIT_SHA) build-image
 	touch $@
+
+build-image/.published: build-image/.uptodate ## Publish docker image used in CI builds
+	docker push $(BUILD_IMAGE):$(GIT_SHA)

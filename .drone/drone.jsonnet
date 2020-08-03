@@ -1,7 +1,10 @@
+// build_image is the image used by default to build make targets.
+local build_image = std.extVar('BUILD_IMAGE');
+
 // make defines the common configuration for a Drone step that builds a make target.
 local make(target) = {
   name: target,
-  image: 'golang:1.14-stretch',
+  image: build_image,
   commands: [
     'make %s' % target,
   ],

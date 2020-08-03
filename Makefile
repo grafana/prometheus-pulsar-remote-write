@@ -32,7 +32,21 @@ image: ## Build docker image
 	drone jsonnet --target $@ --format --stream --source $<\
 		--extVar BUILD_IMAGE=$(BUILD_IMAGE):7ee8ff6
 
-prometheus-pulsar-remote-write.sha256: prometheus-pulsar-remote-write ## Produce SHA256 checksum for the go binary
+BIN_SUFFIXES := linux-amd64 linux-arm64 darwin-amd64 windows-amd64.exe
+BINARIES     := $(patsubst %, dist/prometheus-pulsar-remote-write-%, $(BIN_SUFFIXES))
+SHAS        := $(patsubst %, %.sha256, $(BINARIES))
+
+dist: ## Make the dist directory
+	mkdir -p dist
+
+binaries: $(BINARIES)
+
+$(BINARIES): | dist ## Cross compile go binaries
+	CGO_ENABLED=0 gox -output dist/{{.Dir}}-{{.OS}}-{{.Arch}} $$(echo $(BIN_SUFFIXES) | sed -E -e 's/.exe//' -e 's/([a-z]+)-([a-z0-9]+)/-osarch=\1\/\2/g')
+
+shas: $(SHAS) | dist ## Produce SHA256 checksums for all go binaries
+
+%.sha256: % ## Produce a SHA256 checksum for a file
 	sha256sum $< | cut -b -64 > $@
 
 build-image/.uptodate: build-image/Dockerfile .git/refs/heads/$(GIT_BRANCH) ## Build docker image used in CI builds
@@ -41,3 +55,7 @@ build-image/.uptodate: build-image/Dockerfile .git/refs/heads/$(GIT_BRANCH) ## B
 
 build-image/.published: build-image/.uptodate ## Publish docker image used in CI builds
 	docker push $(BUILD_IMAGE):$(GIT_SHA)
+
+.PHONY: clean
+clean:
+	rm -rfv dist

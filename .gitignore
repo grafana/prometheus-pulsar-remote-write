@@ -1,2 +1,3 @@
 /prometheus-pulsar-remote-write
 .drone/secrets.yml
+dist

@@ -8,33 +8,39 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newSampleNormal() *model.Sample {
-	return &model.Sample{
+func newSampleNormal() *Sample {
+	return NewSample(&model.Sample{
 		Metric: model.Metric{
 			model.MetricNameLabel: "foo",
 			"labelfoo":            "label-bar",
 		},
 		Value:     456,
 		Timestamp: 0,
-	}
+	})
 }
 
-func newSampleInf() *model.Sample {
-	return &model.Sample{
+func newSampleInf() *Sample {
+	return NewSample(&model.Sample{
 		Metric: model.Metric{
 			model.MetricNameLabel: "foo",
 			"labelfoo":            "label-bar",
 		},
 		Value:     model.SampleValue(math.Inf(1)),
 		Timestamp: 10001,
-	}
+	})
+}
+
+func newSampleNormalTenant() *Sample {
+	s := newSampleNormal()
+	s.TenantID = "fake"
+	return s
 }
 
 func TestSerializeToJSON(t *testing.T) {
 	serializer := NewJSONSerializer()
 
 	for _, tc := range []struct {
-		input    *model.Sample
+		input    *Sample
 		expected []byte
 	}{
 		{
@@ -44,6 +50,10 @@ func TestSerializeToJSON(t *testing.T) {
 		{
 			newSampleInf(),
 			[]byte(`{"value":[10.001,"+Inf"],"metric":{"__name__":"foo","labelfoo":"label-bar"}}`),
+		},
+		{
+			newSampleNormalTenant(),
+			[]byte(`{"value":[0,"456"],"metric":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":"fake"}`),
 		},
 	} {
 		actual, err := serializer.Marshal(tc.input)
@@ -64,7 +74,7 @@ func TestSerializeToJSONCompat(t *testing.T) {
 	serializer := NewJSONCompatSerializer()
 
 	for _, tc := range []struct {
-		input    *model.Sample
+		input    *Sample
 		expected []byte
 	}{
 		{
@@ -74,6 +84,10 @@ func TestSerializeToJSONCompat(t *testing.T) {
 		{
 			newSampleInf(),
 			[]byte(`{"value":"+Inf","timestamp":"1970-01-01T00:00:10.001Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"}}`),
+		},
+		{
+			newSampleNormalTenant(),
+			[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":"fake"}`),
 		},
 	} {
 		actual, err := serializer.Marshal(tc.input)
@@ -95,16 +109,20 @@ func TestSerializeToAvro(t *testing.T) {
 	assert.Nil(t, err)
 
 	for _, tc := range []struct {
-		input    *model.Sample
+		input    *Sample
 		expected []byte
 	}{
 		{
 			newSampleNormal(),
-			[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"}}`),
+			[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":""}`),
 		},
 		{
 			newSampleInf(),
-			[]byte(`{"value":"+Inf","timestamp":"1970-01-01T00:00:10.001Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"}}`),
+			[]byte(`{"value":"+Inf","timestamp":"1970-01-01T00:00:10.001Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":""}`),
+		},
+		{
+			newSampleNormalTenant(),
+			[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":"fake"}`),
 		},
 	} {
 		actual, err := serializer.Marshal(tc.input)

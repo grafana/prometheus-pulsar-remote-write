@@ -40,6 +40,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 
+	mcontext "github.com/grafana/prometheus-pulsar-remote-write/context"
 	"github.com/grafana/prometheus-pulsar-remote-write/pulsar"
 )
 
@@ -133,8 +134,6 @@ var (
 func main() {
 	cfg := parseFlags()
 
-	http.Handle(cfg.telemetryPath, promhttp.Handler())
-
 	logger := promlog.New(&cfg.promlogConfig)
 
 	// reduce verbosity of logrus which is used by the pulsar golang library
@@ -143,7 +142,10 @@ func main() {
 	}
 
 	writers, readers := buildClients(logger, cfg)
-	if err := serve(logger, cfg.listenAddr, writers, readers); err != nil {
+	server := &http.Server{
+		Addr: cfg.listenAddr,
+	}
+	if err := serve(logger, cfg, server, writers, readers); err != nil {
 		_ = level.Error(logger).Log("msg", "Failed to listen", "addr", cfg.listenAddr, "err", err)
 		os.Exit(1)
 	}
@@ -255,8 +257,16 @@ func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
 	return writers, readers
 }
 
-func serve(logger log.Logger, addr string, writers []writer, readers []reader) error {
-	http.HandleFunc("/write", func(w http.ResponseWriter, r *http.Request) {
+func serve(logger log.Logger, cfg *config, server *http.Server, writers []writer, readers []reader) error {
+
+	mux := http.NewServeMux()
+	mux.Handle(cfg.telemetryPath, promhttp.Handler())
+
+	middleware := func(next http.HandlerFunc) http.Handler {
+		return mcontext.TenantIDHandler(next)
+	}
+
+	mux.Handle("/write", middleware(func(w http.ResponseWriter, r *http.Request) {
 		compressed, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			_ = level.Error(logger).Log("msg", "Read error", "err", err.Error())
@@ -290,9 +300,9 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 			}(r.Context(), w)
 		}
 		wg.Wait()
-	})
+	}))
 
-	http.HandleFunc("/read", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/read", middleware(func(w http.ResponseWriter, r *http.Request) {
 		compressed, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			_ = level.Error(logger).Log("msg", "Read error", "err", err.Error())
@@ -342,9 +352,10 @@ func serve(logger log.Logger, addr string, writers []writer, readers []reader) e
 		if _, err := w.Write(compressed); err != nil {
 			_ = level.Warn(logger).Log("msg", "Error writing response", "storage", reader.Name(), "err", err)
 		}
-	})
+	}))
 
-	return http.ListenAndServe(addr, nil)
+	server.Handler = mux
+	return server.ListenAndServe()
 }
 
 func protoToSamples(req *prompb.WriteRequest) model.Samples {

@@ -29,6 +29,7 @@ local pipeline(name) = {
   pipeline('check') {
     depends_on: ['prelude'],
     steps: [
+      make('lint'),
       make('test'),
       make('bench'),
       make('build'),

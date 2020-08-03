@@ -22,6 +22,11 @@ platform:
   arch: amd64
 
 steps:
+- name: make lint
+  image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
+  commands:
+  - make lint
+
 - name: make test
   image: jdbgrafana/prometheus-pulsar-remote-write-build-image:7ee8ff6
   commands:

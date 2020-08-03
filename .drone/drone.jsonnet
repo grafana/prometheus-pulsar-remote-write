@@ -3,7 +3,7 @@ local build_image = std.extVar('BUILD_IMAGE');
 
 // make defines the common configuration for a Drone step that builds a make target.
 local make(target) = {
-  name: target,
+  name: 'make %s' % target,
   image: build_image,
   commands: [
     'make %s' % target,
@@ -19,7 +19,15 @@ local pipeline(name) = {
 
 
 [
+  pipeline('prelude') {
+    steps: [
+      make('-B .drone/drone.yml') {
+        commands+: ['git diff --exit-code'],
+      },
+    ],
+  },
   pipeline('check') {
+    depends_on: ['prelude'],
     steps: [
       make('test'),
       make('bench'),

@@ -32,7 +32,8 @@ Flags:
       --web.telemetry-path="/metrics"  
                                 Address to listen on for web endpoints.
       --pulsar.url=""           The URL of the remote Pulsar server to send
-                                samples to. None, if empty
+                                samples to. Example: pulsar://pulsar-proxy:6650.
+                                None, if empty.
       --pulsar.connection-timeout=30s  
                                 The timeout to use when connection to the remote
                                 Pulsar server.
@@ -99,6 +100,11 @@ Flags:
                                         "type": "map",
                                         "values": "string"
                                       }
+                                    },
+                                    {
+                                      "name": "tenant_id",
+                                      "type": "string",
+                                      "default": ""
                                     }
                                   ]
                                 
@@ -109,6 +115,27 @@ Flags:
       --log.format=logfmt       Output format of log messages. One of: [logfmt,
                                 json]
 ```
+
+## Development
+
+### Integration tests
+
+There are some integration tests, which are only run if there is a the
+TEST_PULSAR_URL environment variable set.
+
+```
+docker run -it \
+  -p 6650:6650 \
+  -p 8080:8080 \
+  --mount source=pulsardata,target=/pulsar/data \
+  --mount source=pulsarconf,target=/pulsar/conf \
+  apachepulsar/pulsar:2.6.0 \
+  bin/pulsar standalone
+
+export TEST_PULSAR_URL=pulsar://127.0.0.1:6650
+go test -race ./...
+```
+
 
 [Prometheus]:https://prometheus.io/
 [Pulsar]:https://pulsar.apache.org/

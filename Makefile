@@ -43,7 +43,6 @@ binaries: $(BINARIES)
 
 $(BINARIES): | dist ## Cross compile go binaries
 	CGO_ENABLED=0 gox -output dist/{{.Dir}}-{{.OS}}-{{.Arch}} $$(echo $(BIN_SUFFIXES) | sed -E -e 's/.exe//' -e 's/([a-z]+)-([a-z0-9]+)/-osarch=\1\/\2/g')
-
 shas: $(SHAS) | dist ## Produce SHA256 checksums for all go binaries
 
 %.sha256: % ## Produce a SHA256 checksum for a file

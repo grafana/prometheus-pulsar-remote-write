@@ -261,6 +261,12 @@ func serve(logger log.Logger, cfg *config, server *http.Server, writers []writer
 
 	mux := http.NewServeMux()
 	mux.Handle(cfg.telemetryPath, promhttp.Handler())
+	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte("ok")); err != nil {
+			_ = level.Warn(logger).Log("msg", "Error replying to health check")
+		}
+	})
 
 	middleware := func(next http.HandlerFunc) http.Handler {
 		return mcontext.TenantIDHandler(next)

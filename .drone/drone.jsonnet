@@ -53,7 +53,7 @@ local pipeline(name) = {
       },
     ],
     trigger: {
-      event: ['tag'],
+      ref: ['refs/tags/v*'],
     },
   },
 ]

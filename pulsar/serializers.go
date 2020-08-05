@@ -11,36 +11,56 @@ import (
 )
 
 type Serializer interface {
-	Marshal(*model.Sample) ([]byte, error)
+	Marshal(*Sample) ([]byte, error)
 }
 
 // JSONSerializer represents the sample in the upstream model
 type JSONSerializer struct {
 }
 
-func (*JSONSerializer) Marshal(s *model.Sample) ([]byte, error) {
-	return s.MarshalJSON()
+func NewSample(s *model.Sample) *Sample {
+	return &Sample{
+		Value: model.SamplePair{
+			Timestamp: s.Timestamp,
+			Value:     s.Value,
+		},
+		Metric: s.Metric,
+	}
+}
+
+type Sample struct {
+	Value    model.SamplePair `json:"value"`
+	Metric   model.Metric     `json:"metric,omitempty"`
+	TenantID string           `json:"tenant_id,omitempty"`
+}
+
+func (s *Sample) jsonCompat() map[string]interface{} {
+	data := map[string]interface{}{
+		"timestamp": s.Value.Timestamp.Time().UTC().Format(time.RFC3339Nano),
+		"value":     s.Value.Value.String(),
+		"name":      string(s.Metric["__name__"]),
+		"labels":    s.Metric,
+	}
+	if s.TenantID != "" {
+		data["tenant_id"] = s.TenantID
+	}
+	return data
+}
+
+func (*JSONSerializer) Marshal(s *Sample) ([]byte, error) {
+	return json.Marshal(s)
 }
 
 func NewJSONSerializer() *JSONSerializer {
 	return &JSONSerializer{}
 }
 
-func jsonCompat(s *model.Sample) map[string]interface{} {
-	return map[string]interface{}{
-		"timestamp": s.Timestamp.Time().UTC().Format(time.RFC3339Nano),
-		"value":     s.Value.String(),
-		"name":      string(s.Metric["__name__"]),
-		"labels":    s.Metric,
-	}
-}
-
 // JSONCompatSerializer represents the sample in the upstream model
 type JSONCompatSerializer struct {
 }
 
-func (*JSONCompatSerializer) Marshal(s *model.Sample) ([]byte, error) {
-	return json.Marshal(jsonCompat(s))
+func (*JSONCompatSerializer) Marshal(s *Sample) ([]byte, error) {
+	return json.Marshal(s.jsonCompat())
 }
 
 func NewJSONCompatSerializer() *JSONCompatSerializer {
@@ -71,21 +91,27 @@ const AvroJSONDefaultSchema = `{
         "type": "map",
         "values": "string"
       }
+    },
+    {
+      "name": "tenant_id",
+      "type": "string",
+      "default": ""
     }
   ]
-}`
+}
+`
 
 // AvroJSONSerializer represents a metrics serializer that writes Avro-JSON
 type AvroJSONSerializer struct {
 	codec *goavro.Codec
 }
 
-func (a *AvroJSONSerializer) Marshal(s *model.Sample) ([]byte, error) {
+func (a *AvroJSONSerializer) Marshal(s *Sample) ([]byte, error) {
 	labels := make(map[string]string, len(s.Metric))
 	for k, l := range s.Metric {
 		labels[string(k)] = string(l)
 	}
-	data := jsonCompat(s)
+	data := s.jsonCompat()
 	data["labels"] = labels
 	return a.codec.TextualFromNative(nil, data)
 }

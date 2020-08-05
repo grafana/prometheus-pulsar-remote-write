@@ -5,9 +5,9 @@ WORKDIR /app/
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY main.go .
-COPY ./pulsar ./pulsar
-RUN ls -l
+COPY main.go ./
+COPY context context/
+COPY pulsar pulsar/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o prometheus-pulsar-remote-write .
 
 FROM alpine:3.12

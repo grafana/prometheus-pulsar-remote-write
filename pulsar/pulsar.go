@@ -9,6 +9,8 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/common/model"
+
+	mcontext "github.com/grafana/prometheus-pulsar-remote-write/context"
 )
 
 // Client allows sending batches of Prometheus samples to InfluxDB.
@@ -65,10 +67,14 @@ func (c *Client) Write(ctx context.Context, samples model.Samples) error {
 	}
 	defer producer.Close()
 
+	tenantID := mcontext.TenantIDFromContext(ctx)
+
 	var wg sync.WaitGroup
 
 	for _, sample := range samples {
-		bytes, err := c.serializer.Marshal(sample)
+		s := NewSample(sample)
+		s.TenantID = tenantID
+		bytes, err := c.serializer.Marshal(s)
 		if err != nil {
 			_ = level.Warn(c.logger).Log("msg", "Cannot serialize, skipping sample", "err", err, "sample", sample)
 			continue

@@ -37,8 +37,9 @@ Flags:
                                  External label to identify replicas. Can be
                                  specified multiple times.
       --pulsar.url=""            The URL of the remote Pulsar server to send
-                                 samples to. Example:
-                                 pulsar://pulsar-proxy:6650. None, if empty.
+                                 samples to. Example: pulsar://pulsar-proxy:6650
+                                 or pulsar+ssl://pulsar-proxy:6651. None, if
+                                 empty.
       --pulsar.connection-timeout=30s  
                                  The timeout to use when connection to the
                                  remote Pulsar server.
@@ -114,7 +115,26 @@ Flags:
                                    ]
                                  
                                  }
-      --pulsar.topic="metrics"   The Pulsar topic to publish the metrics on
+      --pulsar.topic="metrics"   The Pulsar topic to publish the metrics on.
+      --pulsar.certificate-authority=""  
+                                 Path to the file that containing the trusted
+                                 certificate authority for the connection to
+                                 Pulsar.
+      --pulsar.client-certificate=""  
+                                 Path to the file containing the client
+                                 certificate used for the connection to Pulsar.
+      --pulsar.client-key=""     Path to the file containing the client key used
+                                 for the connection to Pulsar.
+      --pulsar.insecure-skip-tls-verify  
+                                 Configure whether the Pulsar client accept
+                                 untrusted TLS certificate from broker.
+      --pulsar.insecure-skip-tls-validate-hostname  
+                                 Configure whether the Pulsar client skips to
+                                 verify the validity of the host name from
+                                 broker.
+      --pulsar.max-connections-per-broker=1  
+                                 Max number of connections to a single broker
+                                 that will kept in the pool.
       --log.level=info           Only log messages with the given severity or
                                  above. One of: [debug, info, warn, error]
       --log.format=logfmt        Output format of log messages. One of: [logfmt,

@@ -92,16 +92,25 @@ Default schema:
 )
 
 type config struct {
-	pulsarURL            string
-	pulsarSerializer     string
-	pulsarTopic          string
-	pulsarConnectTimeout time.Duration
-	remoteTimeout        time.Duration
-	listenAddr           string
-	telemetryPath        string
-	writePath            string
-	replicaLabels        []string
-	promlogConfig        promlog.Config
+	// pulsar specific options
+	pulsarURL                             string
+	pulsarSerializer                      string
+	pulsarTopic                           string
+	pulsarConnectTimeout                  time.Duration
+	pulsarCertificateAuthority            string
+	pulsarClientCertificate               string
+	pulsarClientKey                       string
+	pulsarInsecureSkipTLSVerify           bool
+	pulsarInsecureSkipTLSValidateHostname bool
+	pulsarMaxConnectionsPerBroker         int
+
+	// generic options
+	remoteTimeout time.Duration
+	listenAddr    string
+	telemetryPath string
+	writePath     string
+	replicaLabels []string
+	promlogConfig promlog.Config
 }
 
 var (
@@ -174,14 +183,26 @@ func parseFlags() *config {
 		Default("/write").StringVar(&cfg.writePath)
 	a.Flag("replica-label", "External label to identify replicas. Can be specified multiple times.").
 		Default("__replica__").StringsVar(&cfg.replicaLabels)
-	a.Flag("pulsar.url", "The URL of the remote Pulsar server to send samples to. Example: pulsar://pulsar-proxy:6650. None, if empty.").
+	a.Flag("pulsar.url", "The URL of the remote Pulsar server to send samples to. Example: pulsar://pulsar-proxy:6650 or pulsar+ssl://pulsar-proxy:6651. None, if empty.").
 		Default("").StringVar(&cfg.pulsarURL)
 	a.Flag("pulsar.connection-timeout", "The timeout to use when connection to the remote Pulsar server.").
 		Default("30s").DurationVar(&cfg.pulsarConnectTimeout)
 	a.Flag("pulsar.serializer", pulsarSerializerHelp).
 		Default("json").StringVar(&cfg.pulsarSerializer)
-	a.Flag("pulsar.topic", "The Pulsar topic to publish the metrics on").
+	a.Flag("pulsar.topic", "The Pulsar topic to publish the metrics on.").
 		Default("metrics").StringVar(&cfg.pulsarTopic)
+	a.Flag("pulsar.certificate-authority", "Path to the file that containing the trusted certificate authority for the connection to Pulsar.").
+		Default("").StringVar(&cfg.pulsarCertificateAuthority)
+	a.Flag("pulsar.client-certificate", "Path to the file containing the client certificate used for the connection to Pulsar.").
+		Default("").StringVar(&cfg.pulsarClientCertificate)
+	a.Flag("pulsar.client-key", "Path to the file containing the client key used for the connection to Pulsar.").
+		Default("").StringVar(&cfg.pulsarClientKey)
+	a.Flag("pulsar.insecure-skip-tls-verify", "Configure whether the Pulsar client accept untrusted TLS certificate from broker.").
+		Default("false").BoolVar(&cfg.pulsarInsecureSkipTLSVerify)
+	a.Flag("pulsar.insecure-skip-tls-validate-hostname", "Configure whether the Pulsar client skips to verify the validity of the host name from broker.").
+		Default("false").BoolVar(&cfg.pulsarInsecureSkipTLSValidateHostname)
+	a.Flag("pulsar.max-connections-per-broker", "Max number of connections to a single broker that will kept in the pool.").
+		Default("1").IntVar(&cfg.pulsarMaxConnectionsPerBroker)
 
 	flag.AddFlags(a, &cfg.promlogConfig)
 
@@ -209,11 +230,30 @@ func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
 	var writers []writer
 	var readers []reader
 	if cfg.pulsarURL != "" {
+
+		// set authentication method if necessary
+		var auth pulsar.Authentication
+		if cfg.pulsarClientKey != "" || cfg.pulsarClientCertificate != "" {
+			if cfg.pulsarClientKey == "" || cfg.pulsarClientCertificate == "" {
+				_ = level.Error(logger).Log("msg", "Both pulsar.client-key and pulsar.client-certificate need to be specified")
+				os.Exit(1)
+				//
+			}
+			auth = pulsar.NewAuthenticationTLS(cfg.pulsarClientCertificate, cfg.pulsarClientKey)
+		}
+
+		// create client
 		c, err := pulsar.NewClient(pulsar.Config{
 			ClientOptions: pulsar.ClientOptions{
 				URL:               cfg.pulsarURL,
 				ConnectionTimeout: cfg.pulsarConnectTimeout,
 				OperationTimeout:  cfg.remoteTimeout,
+
+				TLSTrustCertsFilePath:      cfg.pulsarCertificateAuthority,
+				Authentication:             auth,
+				TLSAllowInsecureConnection: cfg.pulsarInsecureSkipTLSVerify,
+				TLSValidateHostname:        !cfg.pulsarInsecureSkipTLSValidateHostname,
+				MaxConnectionsPerBroker:    cfg.pulsarMaxConnectionsPerBroker,
 			},
 			Topic:         cfg.pulsarTopic,
 			Logger:        log.With(logger, "storage", "Pulsar"),

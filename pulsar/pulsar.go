@@ -17,22 +17,29 @@ import (
 type Client struct {
 	logger log.Logger
 
-	client     pulsar.Client
-	topic      string
-	serializer Serializer
+	client        pulsar.Client
+	topic         string
+	serializer    Serializer
+	replicaLabels []model.LabelName
 }
 
 type ClientOptions pulsar.ClientOptions
 type Config struct {
 	ClientOptions
-	Topic  string
-	Logger log.Logger
+	Topic         string
+	Logger        log.Logger
+	ReplicaLabels []string
 }
 
 func NewClient(config Config) (*Client, error) {
 	logger := config.Logger
 	if logger == nil {
 		logger = log.NewNopLogger()
+	}
+
+	replicaLabels := make([]model.LabelName, len(config.ReplicaLabels))
+	for pos := range config.ReplicaLabels {
+		replicaLabels[pos] = model.LabelName(config.ReplicaLabels[pos])
 	}
 
 	c, err := pulsar.NewClient(pulsar.ClientOptions(config.ClientOptions))
@@ -42,9 +49,10 @@ func NewClient(config Config) (*Client, error) {
 	return &Client{
 		logger: logger,
 
-		client:     c,
-		topic:      config.Topic,
-		serializer: NewJSONSerializer(),
+		client:        c,
+		topic:         config.Topic,
+		serializer:    NewJSONSerializer(),
+		replicaLabels: replicaLabels,
 	}, nil
 }
 
@@ -85,6 +93,7 @@ func (c *Client) Write(ctx context.Context, samples model.Samples) error {
 			context.Background(),
 			&pulsar.ProducerMessage{
 				Payload: bytes,
+				Key:     s.partitionKey(c.replicaLabels),
 			},
 			func(id pulsar.MessageID, message *pulsar.ProducerMessage, err error) {
 				defer wg.Done()

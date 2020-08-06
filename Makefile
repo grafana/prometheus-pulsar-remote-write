@@ -1,7 +1,7 @@
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 GIT_SHA    := $(shell git rev-parse --short HEAD)
 
-BUILD_IMAGE := jdbgrafana/prometheus-pulsar-remote-write-build-image
+BUILD_IMAGE := grafana/prometheus-pulsar-remote-write-build-image
 
 # from https://suva.sh/posts/well-documented-makefiles/
 .PHONY: help
@@ -30,7 +30,7 @@ image: ## Build docker image
 
 .drone/drone.yml: .drone/drone.jsonnet Makefile ## Update the CI configuration file
 	drone jsonnet --target $@ --format --stream --source $<\
-		--extVar BUILD_IMAGE=$(BUILD_IMAGE):54feccc
+		--extVar BUILD_IMAGE=$(BUILD_IMAGE):c1b1dc1
 
 BIN_SUFFIXES := linux-amd64 linux-arm64 darwin-amd64 windows-amd64.exe
 BINARIES     := $(patsubst %, dist/prometheus-pulsar-remote-write-%, $(BIN_SUFFIXES))

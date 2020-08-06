@@ -1,0 +1,113 @@
+---
+kind: pipeline
+name: prelude
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: make -B .drone/drone.yml
+  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
+  commands:
+  - make -B .drone/drone.yml
+  - git diff --exit-code
+
+---
+kind: pipeline
+name: check
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: make lint
+  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
+  commands:
+  - make lint
+
+- name: make test
+  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
+  commands:
+  - make test
+
+- name: make bench
+  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
+  commands:
+  - make bench
+
+- name: make binaries
+  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
+  commands:
+  - make binaries
+
+depends_on:
+- prelude
+
+---
+kind: pipeline
+name: release
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: make binaries
+  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
+  commands:
+  - make binaries
+
+- name: make shas
+  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
+  commands:
+  - make shas
+
+- name: github-release
+  image: plugins/github-release
+  settings:
+    api_key:
+      from_secret: github_token
+    files:
+    - dist/*
+    title: ${DRONE_TAG}
+
+trigger:
+  ref:
+  - refs/tags/v*
+
+depends_on:
+- check
+
+---
+kind: pipeline
+name: build-image
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: build
+  image: plugins/docker
+  settings:
+    dockerfile: build-image/Dockerfile
+    password:
+      from_secret: docker_password
+    repo: grafana/prometheus-pulsar-remote-write-build-image
+    tags:
+    - latest
+    - ${DRONE_BRANCH}
+    - ${DRONE_COMMIT_SHA:0:8}
+    username:
+      from_secret: docker_username
+
+trigger:
+  ref:
+  - refs/heads/master
+
+depends_on:
+- prelude
+
+...

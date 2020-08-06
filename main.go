@@ -154,6 +154,8 @@ func main() {
 		logrus.SetLevel(logrus.WarnLevel)
 	}
 
+	_ = level.Debug(logger).Log("msg", "Parsed commandline flags", "cfg", fmt.Sprintf("%+#v", cfg))
+
 	writers, readers := buildClients(logger, cfg)
 	server := &http.Server{
 		Addr: cfg.listenAddr,

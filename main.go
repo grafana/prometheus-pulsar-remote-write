@@ -50,6 +50,8 @@ var (
 	pulsarSerializerAvroJSONCompat = "avro-json-compat"
 )
 
+const errSendingSamples = "Error sending samples to remote storage"
+
 var pulsarSerializerHelp = fmt.Sprintf(`Specifies the serialization format
 
 %s: JSON default format as defined by github.com/prometheus/common/model
@@ -294,15 +296,39 @@ func serve(logger log.Logger, cfg *config, server *http.Server, writers []writer
 		samples := protoToSamples(&req)
 		receivedSamples.Add(float64(len(samples)))
 
+		// error if no writer is configured
+		if len(writers) == 0 {
+			http.Error(w, "No write destinations configured", http.StatusBadGateway)
+			return
+		}
+
 		var wg sync.WaitGroup
-		for _, w := range writers {
+		var errs []error = make([]error, len(writers))
+		for pos, w := range writers {
 			wg.Add(1)
-			go func(ctx context.Context, rw writer) {
-				sendSamples(logger, rw, ctx, samples)
+			go func(ctx context.Context, pos int, rw writer) {
+				errs[pos] = sendSamples(logger, rw, ctx, samples)
 				wg.Done()
-			}(r.Context(), w)
+			}(r.Context(), pos, w)
 		}
 		wg.Wait()
+
+		var failedWriters []string
+		for pos, w := range writers {
+			if errs[pos] != nil {
+				failedWriters = append(failedWriters, w.Name())
+			}
+		}
+
+		if len(failedWriters) > 0 {
+			http.Error(
+				w,
+				fmt.Sprintf("%ss: %s", errSendingSamples, strings.Join(failedWriters, ", ")),
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
 	}))
 
 	mux.Handle("/read", middleware(func(w http.ResponseWriter, r *http.Request) {
@@ -380,14 +406,16 @@ func protoToSamples(req *prompb.WriteRequest) model.Samples {
 	return samples
 }
 
-func sendSamples(logger log.Logger, w writer, ctx context.Context, samples model.Samples) {
+func sendSamples(logger log.Logger, w writer, ctx context.Context, samples model.Samples) error {
 	begin := time.Now()
 	err := w.Write(ctx, samples)
 	duration := time.Since(begin).Seconds()
-	if err != nil {
-		_ = level.Warn(logger).Log("msg", "Error sending samples to remote storage", "err", err, "storage", w.Name(), "num_samples", len(samples))
-		failedSamples.WithLabelValues(w.Name()).Add(float64(len(samples)))
-	}
 	sentSamples.WithLabelValues(w.Name()).Add(float64(len(samples)))
 	sentBatchDuration.WithLabelValues(w.Name()).Observe(duration)
+	if err != nil {
+		_ = level.Warn(logger).Log("msg", errSendingSamples, "err", err, "storage", w.Name(), "num_samples", len(samples))
+		failedSamples.WithLabelValues(w.Name()).Add(float64(len(samples)))
+		return err
+	}
+	return nil
 }

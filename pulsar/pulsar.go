@@ -24,6 +24,13 @@ type Client struct {
 }
 
 type ClientOptions pulsar.ClientOptions
+
+type Authentication pulsar.Authentication
+
+func NewAuthenticationTLS(certificatePath string, privateKeyPath string) Authentication {
+	return pulsar.NewAuthenticationTLS(certificatePath, privateKeyPath)
+}
+
 type Config struct {
 	ClientOptions
 	Topic         string

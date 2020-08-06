@@ -2,8 +2,11 @@ package pulsar
 
 import (
 	"encoding/json"
+	"fmt"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
+	"sort"
 	"time"
 
 	"github.com/linkedin/goavro"
@@ -45,6 +48,40 @@ func (s *Sample) jsonCompat() map[string]interface{} {
 		data["tenant_id"] = s.TenantID
 	}
 	return data
+}
+
+func labelNameSliceContains(s []model.LabelName, e model.LabelName) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Sample) partitionKey(replicationLabels []model.LabelName) string {
+	hash := fnv.New64()
+
+	// add labels apart from replication labels to the key
+	if s.Metric != nil {
+		keys := make([]string, 0, len(s.Metric))
+		for k := range s.Metric {
+			if labelNameSliceContains(replicationLabels, k) {
+				continue
+			}
+			keys = append(keys, string(k))
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			_, _ = hash.Write([]byte(k))
+			_, _ = hash.Write([]byte(s.Metric[model.LabelName(k)]))
+		}
+	}
+
+	// add tenant id
+	_, _ = hash.Write([]byte(s.TenantID))
+
+	return fmt.Sprintf("hex %016x", hash.Sum64())
 }
 
 func (*JSONSerializer) Marshal(s *Sample) ([]byte, error) {

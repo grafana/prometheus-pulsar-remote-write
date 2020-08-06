@@ -100,6 +100,7 @@ type config struct {
 	listenAddr           string
 	telemetryPath        string
 	writePath            string
+	replicaLabels        []string
 	promlogConfig        promlog.Config
 }
 
@@ -171,6 +172,8 @@ func parseFlags() *config {
 		Default("/metrics").StringVar(&cfg.telemetryPath)
 	a.Flag("web.write-path", "Path under which to receive remote_write requests.").
 		Default("/write").StringVar(&cfg.writePath)
+	a.Flag("replica-label", "External label to identify replicas. Can be specified multiple times.").
+		Default("__replica__").StringsVar(&cfg.replicaLabels)
 	a.Flag("pulsar.url", "The URL of the remote Pulsar server to send samples to. Example: pulsar://pulsar-proxy:6650. None, if empty.").
 		Default("").StringVar(&cfg.pulsarURL)
 	a.Flag("pulsar.connection-timeout", "The timeout to use when connection to the remote Pulsar server.").
@@ -212,8 +215,9 @@ func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
 				ConnectionTimeout: cfg.pulsarConnectTimeout,
 				OperationTimeout:  cfg.remoteTimeout,
 			},
-			Topic:  cfg.pulsarTopic,
-			Logger: log.With(logger, "storage", "Pulsar"),
+			Topic:         cfg.pulsarTopic,
+			Logger:        log.With(logger, "storage", "Pulsar"),
+			ReplicaLabels: cfg.replicaLabels,
 		})
 		if err != nil {
 			_ = level.Error(logger).Log("msg", "Failed to initialize Pulsar", "err", err)

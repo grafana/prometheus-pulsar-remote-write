@@ -138,3 +138,50 @@ func BenchmarkSerializeToAvroJSON(b *testing.B) {
 		_, _ = serializer.Marshal(sample)
 	}
 }
+
+func TestSamplePartitionKey(t *testing.T) {
+	replica := model.LabelName("replica")
+	replicaLabels := []model.LabelName{replica}
+	count := model.LabelName("count")
+
+	sample1 := newSampleNormal()
+	sample1.Metric[count] = model.LabelValue("1")
+	sample1ten := newSampleNormal()
+	sample1ten.Metric[count] = model.LabelValue("1")
+	sample1ten.TenantID = "tenant1"
+	sample2a := newSampleNormal()
+	sample2a.Metric[count] = model.LabelValue("2")
+	sample2a.Metric[replica] = model.LabelValue("a")
+	sample2b := newSampleNormal()
+	sample2b.Metric[count] = model.LabelValue("2")
+	sample2b.Metric[replica] = model.LabelValue("b")
+
+	assert.Equal(
+		t,
+		sample1.partitionKey(replicaLabels),
+		sample1.partitionKey(replicaLabels),
+		"hash values of the same value should be the same",
+	)
+
+	assert.NotEqual(
+		t,
+		sample1.partitionKey(replicaLabels),
+		sample2a.partitionKey(replicaLabels),
+		"hash values of different samples should be different",
+	)
+
+	assert.Equal(
+		t,
+		sample2a.partitionKey(replicaLabels),
+		sample2b.partitionKey(replicaLabels),
+		"hash values of different replica labels should be the same",
+	)
+
+	assert.NotEqual(
+		t,
+		sample1.partitionKey(replicaLabels),
+		sample1ten.partitionKey(replicaLabels),
+		"hash values of different tenants should be different",
+	)
+
+}

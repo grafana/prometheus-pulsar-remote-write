@@ -80,4 +80,34 @@ trigger:
 depends_on:
 - check
 
+---
+kind: pipeline
+name: build-image
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: build
+  image: plugins/docker
+  settings:
+    dockerfile: build-image/Dockerfile
+    password:
+      from_secret: docker_password
+    repo: grafana/prometheus-pulsar-remote-write-build-image
+    tags:
+    - latest
+    - ${DRONE_BRANCH}
+    - ${DRONE_COMMIT_SHA:0:8}
+    username:
+      from_secret: docker_username
+
+trigger:
+  ref:
+  - refs/heads/master
+
+depends_on:
+- prelude
+
 ...

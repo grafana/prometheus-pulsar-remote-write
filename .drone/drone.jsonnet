@@ -56,4 +56,24 @@ local pipeline(name) = {
       ref: ['refs/tags/v*'],
     },
   },
+
+  pipeline('build-image') {
+    depends_on: ['prelude'],
+    steps: [
+      {
+        name: 'build',
+        image: 'plugins/docker',
+        settings: {
+          dockerfile: 'build-image/Dockerfile',
+          repo: 'grafana/prometheus-pulsar-remote-write-build-image',
+          password: { from_secret: 'docker_password' },
+          username: { from_secret: 'docker_username' },
+          tags: ['latest', '${DRONE_BRANCH}', '${DRONE_COMMIT_SHA:0:8}'],
+        },
+      },
+    ],
+    trigger: {
+      ref: ['refs/heads/master'],
+    },
+  },
 ]

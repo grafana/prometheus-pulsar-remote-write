@@ -126,6 +126,34 @@ type testIntegration struct {
 	consumeMessage        func(pulsar.Message)
 }
 
+func isReady(ctx context.Context, url string) error {
+	var err error
+	for {
+		select {
+		case <-time.NewTimer(50 * time.Millisecond).C:
+			req, rErr := http.NewRequest("GET", url, nil)
+			if rErr != nil {
+				err = rErr
+				continue
+			}
+
+			resp, rErr := http.DefaultClient.Do(req.WithContext(ctx))
+			defer resp.Body.Close()
+			if rErr != nil {
+				err = rErr
+				continue
+			}
+
+			if resp.StatusCode == 200 {
+				return nil
+			}
+			err = fmt.Errorf("unexpected status code %d", resp.StatusCode)
+		case <-ctx.Done():
+			return fmt.Errorf("context timeout waiting for readiness %s: %s", url, err)
+		}
+	}
+}
+
 func (ti *testIntegration) test(t *testing.T) {
 	skipWithoutPulsar(t)
 
@@ -162,6 +190,13 @@ func (ti *testIntegration) test(t *testing.T) {
 		}
 		assert.Nil(t, err)
 	}()
+
+	// wait till server is ready
+	readyCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := isReady(readyCtx, fmt.Sprintf("http://%s/ready", host)); err != nil {
+		t.Fatalf("remote adapter is not ready: %v", err)
+	}
 
 	// build a remote writer
 	remoteWriteURL, err := url.Parse(fmt.Sprintf("http://%s/write", host))
@@ -205,7 +240,7 @@ func (ti *testIntegration) test(t *testing.T) {
 	defer consumer.Close()
 
 	// set deadline if nothing can be consumed
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// receive messages on topic

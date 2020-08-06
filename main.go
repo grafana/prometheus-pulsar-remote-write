@@ -97,6 +97,7 @@ type config struct {
 	remoteTimeout        time.Duration
 	listenAddr           string
 	telemetryPath        string
+	writePath            string
 	promlogConfig        promlog.Config
 }
 
@@ -164,8 +165,10 @@ func parseFlags() *config {
 		Default("30s").DurationVar(&cfg.remoteTimeout)
 	a.Flag("web.listen-address", "Address to listen on for web endpoints.").
 		Default(":9201").StringVar(&cfg.listenAddr)
-	a.Flag("web.telemetry-path", "Address to listen on for web endpoints.").
+	a.Flag("web.telemetry-path", "Path under which to expose metrics.").
 		Default("/metrics").StringVar(&cfg.telemetryPath)
+	a.Flag("web.write-path", "Path under which to receive remote_write requests.").
+		Default("/write").StringVar(&cfg.writePath)
 	a.Flag("pulsar.url", "The URL of the remote Pulsar server to send samples to. Example: pulsar://pulsar-proxy:6650. None, if empty.").
 		Default("").StringVar(&cfg.pulsarURL)
 	a.Flag("pulsar.connection-timeout", "The timeout to use when connection to the remote Pulsar server.").
@@ -266,7 +269,7 @@ func serve(logger log.Logger, cfg *config, server *http.Server, writers []writer
 		return mcontext.TenantIDHandler(next)
 	}
 
-	mux.Handle("/write", middleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle(cfg.writePath, middleware(func(w http.ResponseWriter, r *http.Request) {
 		compressed, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			_ = level.Error(logger).Log("msg", "Read error", "err", err.Error())

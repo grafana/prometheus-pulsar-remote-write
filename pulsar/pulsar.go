@@ -18,9 +18,9 @@ type Client struct {
 	logger log.Logger
 
 	client        pulsar.Client
-	topic         string
 	serializer    Serializer
 	replicaLabels []model.LabelName
+	producer      pulsar.Producer
 }
 
 type ClientOptions pulsar.ClientOptions
@@ -53,11 +53,17 @@ func NewClient(config Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	producer, err := c.CreateProducer(pulsar.ProducerOptions{
+		Topic: config.Topic,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating producer: %w", err)
+	}
 	return &Client{
 		logger: logger,
 
 		client:        c,
-		topic:         config.Topic,
+		producer:      producer,
 		serializer:    NewJSONSerializer(),
 		replicaLabels: replicaLabels,
 	}, nil
@@ -73,15 +79,20 @@ func (c *Client) WithSerializer(s Serializer) *Client {
 	return c
 }
 
-func (c *Client) Write(ctx context.Context, samples model.Samples) error {
-	producer, err := c.client.CreateProducer(pulsar.ProducerOptions{
-		Topic: c.topic,
-	})
-	if err != nil {
-		return fmt.Errorf("error creating producer: %w", err)
+func (c *Client) Close() error {
+	if c.producer != nil {
+		err := c.producer.Flush()
+		if err != nil {
+			return err
+		}
+		c.producer.Close()
+		c.producer = nil
 	}
-	defer producer.Close()
+	c.client.Close()
+	return nil
+}
 
+func (c *Client) Write(ctx context.Context, samples model.Samples) error {
 	tenantID := mcontext.TenantIDFromContext(ctx)
 
 	var wg sync.WaitGroup
@@ -96,7 +107,7 @@ func (c *Client) Write(ctx context.Context, samples model.Samples) error {
 		}
 
 		wg.Add(1)
-		producer.SendAsync(
+		c.producer.SendAsync(
 			context.Background(),
 			&pulsar.ProducerMessage{
 				Payload: bytes,
@@ -112,5 +123,5 @@ func (c *Client) Write(ctx context.Context, samples model.Samples) error {
 	}
 
 	wg.Wait()
-	return producer.Flush()
+	return c.producer.Flush()
 }

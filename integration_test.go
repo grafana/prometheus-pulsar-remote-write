@@ -177,6 +177,7 @@ func (ti *testIntegration) test(t *testing.T) {
 	logger := log.NewNopLogger()
 
 	writers, readers := buildClients(logger, cfg)
+	defer closeClients(logger, writers, readers)
 
 	server := &http.Server{
 		Addr: cfg.listenAddr,

@@ -20,9 +20,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -160,10 +162,33 @@ func main() {
 	server := &http.Server{
 		Addr: cfg.listenAddr,
 	}
-	if err := serve(logger, cfg, server, writers, readers); err != nil {
-		_ = level.Error(logger).Log("msg", "Failed to listen", "addr", cfg.listenAddr, "err", err)
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		if err := serve(logger, cfg, server, writers, readers); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			_ = level.Error(logger).Log("msg", "Failed to listen", "addr", cfg.listenAddr, "err", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-done
+
+	// first asking http to shut down and wait for it up to 10 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	errShutdown := server.Shutdown(ctx)
+
+	// after shutdown of server (successfull or not) close clients
+	closeClients(logger, writers, readers)
+
+	if errShutdown != nil {
+		_ = level.Error(logger).Log("msg", "Failed to stop server", "addr", cfg.listenAddr, "err", errShutdown)
 		os.Exit(1)
 	}
+
+	_ = level.Info(logger).Log("msg", "Successfully stopped server")
 }
 
 func parseFlags() *config {
@@ -221,11 +246,13 @@ func parseFlags() *config {
 type writer interface {
 	Write(ctx context.Context, samples model.Samples) error
 	Name() string
+	Close() error
 }
 
 type reader interface {
 	Read(req *prompb.ReadRequest) (*prompb.ReadResponse, error)
 	Name() string
+	Close() error
 }
 
 func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
@@ -306,6 +333,19 @@ func buildClients(logger log.Logger, cfg *config) ([]writer, []reader) {
 	}
 	_ = level.Info(logger).Log("msg", "Starting up...")
 	return writers, readers
+}
+
+func closeClients(logger log.Logger, writers []writer, readers []reader) {
+	for _, w := range writers {
+		if err := w.Close(); err != nil {
+			_ = level.Warn(logger).Log("msg", "Failed to writer", "name", w.Name(), "err", err)
+		}
+	}
+	for _, r := range readers {
+		if err := r.Close(); err != nil {
+			_ = level.Warn(logger).Log("msg", "Failed to reader", "name", r.Name(), "err", err)
+		}
+	}
 }
 
 func serve(logger log.Logger, cfg *config, server *http.Server, writers []writer, readers []reader) error {

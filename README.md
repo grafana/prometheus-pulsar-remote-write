@@ -1,7 +1,7 @@
 # prometheus-pulsar-remote-write
 
 A [Prometheus] remote_write adapter for [Pulsar], based on
-[remote-storage-adapter][prometheus/remote-storage-adapter] and inspried by
+[remote-storage-adapter][prometheus/remote-storage-adapter] and inspired by
 [liangyuanpeng/prometheus-pulsar-adapter].
 
 ## Configuration

@@ -31,6 +31,8 @@ Flags:
                                  Address to listen on for web endpoints.
       --web.telemetry-path="/metrics"  
                                  Path under which to expose metrics.
+      --web.disable-pprof        Disable the pprof tracing/debugging endpoints
+                                 under /debug/pprof.
       --web.write-path="/write"  Path under which to receive remote_write
                                  requests.
       --replica-label=__replica__ ...  

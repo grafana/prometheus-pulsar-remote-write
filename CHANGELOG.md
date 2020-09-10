@@ -2,6 +2,8 @@
 
 ## master / unreleased
 
+* [ENHANCEMENT] Add pprof endpoints by default and add parameter `--web.disable-pprof` to disable them. #23
+
 ## 0.1.1 / 2020-08-27
 
 * [CHANGE] Use a single producer instead of one per batch. #18

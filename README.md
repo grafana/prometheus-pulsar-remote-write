@@ -33,6 +33,9 @@ Flags:
                                  Path under which to expose metrics.
       --web.disable-pprof        Disable the pprof tracing/debugging endpoints
                                  under /debug/pprof.
+      --web.max-connection-age=0s  
+                                 If set this limits the maximum lifetime of
+                                 persistent HTTP connections.
       --web.write-path="/write"  Path under which to receive remote_write
                                  requests.
       --replica-label=__replica__ ...  

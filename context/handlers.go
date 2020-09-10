@@ -2,7 +2,25 @@ package context
 
 import (
 	"net/http"
+	"time"
 )
+
+type realClock struct {
+}
+
+func (_ *realClock) Now() time.Time {
+	return time.Now()
+}
+
+type Clock interface {
+	Now() time.Time
+}
+
+var clock Clock = &realClock{}
+
+func WithClock(c Clock) {
+	clock = c
+}
 
 func TenantIDHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -14,5 +32,14 @@ func TenantIDHandler(next http.Handler) http.Handler {
 			tenantID = header
 		}
 		next.ServeHTTP(w, r.WithContext(ContextWithTenantID(r.Context(), tenantID)))
+	})
+}
+
+func MaxConnectionAgeHandler(next http.Handler, maxConnectionAge time.Duration) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if start, ok := ConnectionStartTimeFromContext(r.Context()); ok && clock.Now().After(start.Add(maxConnectionAge)) {
+			w.Header().Set("Connection", "close")
+		}
+		next.ServeHTTP(w, r)
 	})
 }

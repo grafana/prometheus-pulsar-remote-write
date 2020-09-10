@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -113,6 +114,7 @@ type config struct {
 	writePath     string
 	replicaLabels []string
 	promlogConfig promlog.Config
+	disablePprof  bool
 }
 
 var (
@@ -206,6 +208,8 @@ func parseFlags() *config {
 		Default(":9201").StringVar(&cfg.listenAddr)
 	a.Flag("web.telemetry-path", "Path under which to expose metrics.").
 		Default("/metrics").StringVar(&cfg.telemetryPath)
+	a.Flag("web.disable-pprof", "Disable the pprof tracing/debugging endpoints under /debug/pprof.").
+		Default("false").BoolVar(&cfg.disablePprof)
 	a.Flag("web.write-path", "Path under which to receive remote_write requests.").
 		Default("/write").StringVar(&cfg.writePath)
 	a.Flag("replica-label", "External label to identify replicas. Can be specified multiple times.").
@@ -358,6 +362,15 @@ func serve(logger log.Logger, cfg *config, server *http.Server, writers []writer
 			_ = level.Warn(logger).Log("msg", "Error replying to health check")
 		}
 	})
+
+	// Enable pprof endpoint if enabled by cmdline
+	if !cfg.disablePprof {
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	}
 
 	middleware := func(next http.HandlerFunc) http.Handler {
 		return mcontext.TenantIDHandler(next)

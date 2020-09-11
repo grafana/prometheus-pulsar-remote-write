@@ -42,6 +42,11 @@ steps:
   commands:
   - make binaries
 
+- name: make verify-readme
+  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
+  commands:
+  - make verify-readme
+
 depends_on:
 - prelude
 

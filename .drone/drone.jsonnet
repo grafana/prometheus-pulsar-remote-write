@@ -34,6 +34,7 @@ local pipeline(name) = {
       make('test'),
       make('bench'),
       make('binaries'),
+      make('verify-readme'),
     ],
   },
 

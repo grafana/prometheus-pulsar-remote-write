@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -108,13 +109,14 @@ type config struct {
 	pulsarMaxConnectionsPerBroker         int
 
 	// generic options
-	remoteTimeout time.Duration
-	listenAddr    string
-	telemetryPath string
-	writePath     string
-	replicaLabels []string
-	promlogConfig promlog.Config
-	disablePprof  bool
+	remoteTimeout    time.Duration
+	listenAddr       string
+	telemetryPath    string
+	writePath        string
+	replicaLabels    []string
+	promlogConfig    promlog.Config
+	disablePprof     bool
+	maxConnectionAge time.Duration
 }
 
 var (
@@ -165,6 +167,16 @@ func main() {
 		Addr: cfg.listenAddr,
 	}
 
+	// Implement maximum connection age, this avoids long running remote_write
+	// connections creating an unbalanced share of load
+	if cfg.maxConnectionAge.Seconds() > 0 {
+		_ = level.Debug(logger).Log("msg", "Setup a max connection age for HTTP connections", "duration", cfg.maxConnectionAge)
+		server.IdleTimeout = cfg.maxConnectionAge
+		server.ConnContext = func(ctx context.Context, _ net.Conn) context.Context {
+			return mcontext.ContextWithConnectionStartTime(ctx, time.Now())
+		}
+	}
+
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
@@ -210,6 +222,8 @@ func parseFlags() *config {
 		Default("/metrics").StringVar(&cfg.telemetryPath)
 	a.Flag("web.disable-pprof", "Disable the pprof tracing/debugging endpoints under /debug/pprof.").
 		Default("false").BoolVar(&cfg.disablePprof)
+	a.Flag("web.max-connection-age", "If set this limits the maximum lifetime of persistent HTTP connections.").
+		Default("0s").DurationVar(&cfg.maxConnectionAge)
 	a.Flag("web.write-path", "Path under which to receive remote_write requests.").
 		Default("/write").StringVar(&cfg.writePath)
 	a.Flag("replica-label", "External label to identify replicas. Can be specified multiple times.").
@@ -488,7 +502,7 @@ func serve(logger log.Logger, cfg *config, server *http.Server, writers []writer
 		}
 	}))
 
-	server.Handler = mux
+	server.Handler = mcontext.MaxConnectionAgeHandler(mux, cfg.maxConnectionAge)
 	return server.ListenAndServe()
 }
 

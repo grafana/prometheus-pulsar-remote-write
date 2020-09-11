@@ -1,6 +1,6 @@
 # Changelog
 
-## master / unreleased
+## 0.1.2 / 2020-09-11
 
 * [ENHANCEMENT] Add pprof endpoints by default and add parameter `--web.disable-pprof` to disable them. #23
 * [ENHANCEMENT] Add configuration parameter `--web.max-connection-age` to limit lifetime of HTTP connections. #22

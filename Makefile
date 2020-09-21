@@ -24,6 +24,14 @@ bench: ## Run all benchmarks
 lint: ## Lint
 	golangci-lint run ./...
 
+.PHONY: verify-readme
+verify-readme: ## Ensure the README.md is update to date
+	go build && ./prometheus-pulsar-remote-write --help 2>&1 | go run hack/update-readme.go
+
+.PHONY: update-readme
+update-readme: ## Update the README.md is update to date
+	go build && ./prometheus-pulsar-remote-write --help 2>&1 | go run hack/update-readme.go --update
+
 .PHONY: image
 image: ## Build docker image
 	docker build -t grafana/prometheus-pulsar-remote-write .

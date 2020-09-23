@@ -69,6 +69,19 @@ steps:
   commands:
   - make shas
 
+- name: docker grafana/prometheus-pulsar-remote-write
+  image: plugins/docker
+  settings:
+    password:
+      from_secret: docker_password
+    repo: grafana/prometheus-pulsar-remote-write
+    tags:
+    - latest
+    - ${DRONE_COMMIT_SHA:0:8}
+    - ${DRONE_TAG}
+    username:
+      from_secret: docker_username
+
 - name: github-release
   image: plugins/github-release
   settings:
@@ -94,7 +107,7 @@ platform:
   arch: amd64
 
 steps:
-- name: build
+- name: docker grafana/prometheus-pulsar-remote-write-build-image
   image: plugins/docker
   settings:
     dockerfile: build-image/Dockerfile
@@ -103,8 +116,8 @@ steps:
     repo: grafana/prometheus-pulsar-remote-write-build-image
     tags:
     - latest
-    - ${DRONE_BRANCH}
     - ${DRONE_COMMIT_SHA:0:8}
+    - ${DRONE_BRANCH}
     username:
       from_secret: docker_username
 

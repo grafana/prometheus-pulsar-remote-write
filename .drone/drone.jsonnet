@@ -10,6 +10,18 @@ local make(target) = {
   ],
 };
 
+// docker can be used to build docker images.
+local docker(repo) = {
+  name: 'docker %s' % repo,
+  image: 'plugins/docker',
+  settings: {
+    repo: repo,
+    password: { from_secret: 'docker_password' },
+    username: { from_secret: 'docker_username' },
+    tags: ['latest', '${DRONE_COMMIT_SHA:0:8}'],
+  },
+};
+
 // pipeline defines an empty Drone pipeline.
 local pipeline(name) = {
   kind: 'pipeline',
@@ -43,6 +55,11 @@ local pipeline(name) = {
     steps: [
       make('binaries'),
       make('shas'),
+      docker('grafana/prometheus-pulsar-remote-write') {
+        settings+: {
+          tags+: ['${DRONE_TAG}'],
+        },
+      },
       {
         name: 'github-release',
         image: 'plugins/github-release',
@@ -53,6 +70,7 @@ local pipeline(name) = {
         },
       },
     ],
+
     trigger: {
       ref: ['refs/tags/v*'],
     },
@@ -61,15 +79,10 @@ local pipeline(name) = {
   pipeline('build-image') {
     depends_on: ['prelude'],
     steps: [
-      {
-        name: 'build',
-        image: 'plugins/docker',
-        settings: {
+      docker('grafana/prometheus-pulsar-remote-write-build-image') {
+        settings+: {
           dockerfile: 'build-image/Dockerfile',
-          repo: 'grafana/prometheus-pulsar-remote-write-build-image',
-          password: { from_secret: 'docker_password' },
-          username: { from_secret: 'docker_username' },
-          tags: ['latest', '${DRONE_BRANCH}', '${DRONE_COMMIT_SHA:0:8}'],
+          tags+: ['${DRONE_BRANCH}'],
         },
       },
     ],

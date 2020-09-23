@@ -15,9 +15,9 @@ RUN curl -L https://github.com/golangci/golangci-lint/releases/download/v"${GOLA
 RUN echo "${GOLANGCI_LINT_CHECKSUM} golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64/golangci-lint" | sha256sum -c - || (printf "wanted: %s\n   got: %s\n" "${GOLANGCI_LINT_CHECKSUM}" "$(sha256sum golangci-lint-${GOLANGCI_LINT_VERSION})"; exit 1)
 RUN install -t /usr/local/bin golangci-lint-"${GOLANGCI_LINT_VERSION}"-linux-amd64/golangci-lint
 
-FROM golang:1.14-stretch as gox-builder
+FROM golang:1.14.9-stretch as gox-builder
 ARG GOX_VERSION=1.0.1
-ARG GOX_CHECKSUM=87c9f4d0ac94106abbc1ebd99ca053789714e36e41f1e34ed81d42aedb1566a5
+ARG GOX_CHECKSUM=5d3af949754dcf66673a687117b6e1f894dce71e2d218449e47932bf11838498
 RUN curl -L https://github.com/mitchellh/gox/archive/v"${GOX_VERSION}".tar.gz | tar zx
 RUN cd gox-"${GOX_VERSION}" && go build
 RUN echo "${GOX_CHECKSUM} gox-${GOX_VERSION}/gox" | sha256sum -c - || (printf "wanted: %s\n   got: %s\n" "${GOX_CHECKSUM}" "$(sha256sum gox-${GOX_VERSION}/gox)"; exit 1)

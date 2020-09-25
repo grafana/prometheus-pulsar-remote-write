@@ -1,4 +1,4 @@
-FROM golang:1.14.6
+FROM golang:1.14.9
 
 # fetch dependencies
 WORKDIR /app/

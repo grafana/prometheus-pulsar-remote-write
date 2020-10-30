@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"context"
@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/apache/pulsar-client-go/pulsar"
-	"github.com/go-kit/kit/log"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
 	promconfig "github.com/prometheus/common/config"
@@ -23,6 +22,8 @@ import (
 	"github.com/prometheus/prometheus/storage/remote"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+
+	adapter "github.com/grafana/prometheus-pulsar-remote-write/pkg/app"
 )
 
 type Clocker interface {
@@ -30,6 +31,8 @@ type Clocker interface {
 }
 
 var clock Clocker = &testClock{}
+
+var app = adapter.New()
 
 type testClock struct {
 	t time.Time
@@ -138,7 +141,7 @@ func isReady(ctx context.Context, url string) error {
 			}
 
 			resp, rErr := http.DefaultClient.Do(req.WithContext(ctx))
-			defer resp.Body.Close()
+			//defer resp.Body.Close()
 			if rErr != nil {
 				err = rErr
 				continue
@@ -164,31 +167,21 @@ func (ti *testIntegration) test(t *testing.T) {
 	pulsarTopic := fmt.Sprintf("metrics-test-%s", randSeq(8))
 	pulsarURL := os.Getenv(envTestPulsarURL)
 
-	os.Args = []string{
-		"go test",
+	args := []string{
+		"produce",
 		// set pulsar url from environment
 		fmt.Sprintf(`--pulsar.url=%s`, pulsarURL),
 		fmt.Sprintf(`--pulsar.topic=%s`, pulsarTopic),
 		// use a random port to listen
 		fmt.Sprintf(`--web.listen-address=%s`, host),
 	}
-	cfg := parseFlags()
 
-	logger := log.NewNopLogger()
-
-	writers, readers := buildClients(logger, cfg)
-	defer closeClients(logger, writers, readers)
-
-	server := &http.Server{
-		Addr: cfg.listenAddr,
-	}
-	defer server.Close()
+	adapterCtx, adapterCancel := context.WithCancel(context.Background())
+	defer adapterCancel()
 
 	go func() {
-		err := serve(logger, cfg, server, writers, readers)
-		if err == http.ErrServerClosed {
-			return
-		}
+		t.Logf("run adapter with args=%v", args)
+		err := app.Run(adapterCtx, args...)
 		assert.Nil(t, err)
 	}()
 

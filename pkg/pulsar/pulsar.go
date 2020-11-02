@@ -10,7 +10,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/common/model"
 
-	mcontext "github.com/grafana/prometheus-pulsar-remote-write/context"
+	mcontext "github.com/grafana/prometheus-pulsar-remote-write/pkg/context"
 )
 
 // Client allows sending batches of Prometheus samples to InfluxDB.

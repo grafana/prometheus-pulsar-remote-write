@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	mcontext "github.com/grafana/prometheus-pulsar-remote-write/context"
+	mcontext "github.com/grafana/prometheus-pulsar-remote-write/pkg/context"
 )
 
 type fakeClock struct {

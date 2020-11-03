@@ -20,7 +20,13 @@ type Client struct {
 	client        pulsar.Client
 	serializer    Serializer
 	replicaLabels []model.LabelName
-	producer      pulsar.Producer
+	topic         string
+	subscription  string
+
+	_producerLock sync.Mutex
+	_producer     pulsar.Producer
+	_consumerLock sync.Mutex
+	_consumer     pulsar.Consumer
 }
 
 type ClientOptions pulsar.ClientOptions
@@ -36,6 +42,7 @@ type Config struct {
 	Topic         string
 	Logger        log.Logger
 	ReplicaLabels []string
+	Subscription  string
 }
 
 func NewClient(config Config) (*Client, error) {
@@ -53,24 +60,68 @@ func NewClient(config Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	producer, err := c.CreateProducer(pulsar.ProducerOptions{
-		Topic: config.Topic,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating producer: %w", err)
-	}
+
 	return &Client{
 		logger: logger,
 
 		client:        c,
-		producer:      producer,
 		serializer:    NewJSONSerializer(),
 		replicaLabels: replicaLabels,
+		topic:         config.Topic,
+		subscription:  config.Subscription,
 	}, nil
 }
 
+func (c *Client) InitProducer() error {
+	_, err := c.consumer()
+	return err
+}
+
+func (c *Client) producer() (pulsar.Producer, error) {
+	c._producerLock.Lock()
+	defer c._producerLock.Unlock()
+	if c._producer != nil {
+		return c._producer, nil
+	}
+
+	producer, err := c.client.CreateProducer(pulsar.ProducerOptions{
+		Topic: c.topic,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating producer: %w", err)
+	}
+	c._producer = producer
+
+	return producer, nil
+}
+
+func (c *Client) InitConsumer() error {
+	_, err := c.consumer()
+	return err
+}
+
+func (c *Client) consumer() (pulsar.Consumer, error) {
+	c._consumerLock.Lock()
+	defer c._consumerLock.Unlock()
+	if c._consumer != nil {
+		return c._consumer, nil
+	}
+
+	consumer, err := c.client.Subscribe(pulsar.ConsumerOptions{
+		Topic:            c.topic,
+		SubscriptionName: c.subscription,
+		Type:             pulsar.KeyShared,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating consumer: %w", err)
+	}
+	c._consumer = consumer
+
+	return consumer, nil
+}
+
 // Name identifies the client as a Pulsar client.
-func (c Client) Name() string {
+func (*Client) Name() string {
 	return "pulsar"
 }
 
@@ -80,19 +131,38 @@ func (c *Client) WithSerializer(s Serializer) *Client {
 }
 
 func (c *Client) Close() error {
-	if c.producer != nil {
-		err := c.producer.Flush()
+	c._producerLock.Lock()
+	defer c._producerLock.Unlock()
+	if c._producer != nil {
+		err := c._producer.Flush()
 		if err != nil {
 			return err
 		}
-		c.producer.Close()
-		c.producer = nil
+		c._producer.Close()
+		c._producer = nil
 	}
+
+	c._consumerLock.Lock()
+	defer c._consumerLock.Unlock()
+	if c._consumer != nil {
+		err := c._consumer.Unsubscribe()
+		if err != nil {
+			return err
+		}
+		c._consumer.Close()
+		c._consumer = nil
+	}
+
 	c.client.Close()
 	return nil
 }
 
 func (c *Client) Write(ctx context.Context, samples model.Samples) error {
+	producer, err := c.producer()
+	if err != nil {
+		return err
+	}
+
 	tenantID := mcontext.TenantIDFromContext(ctx)
 
 	var wg sync.WaitGroup
@@ -107,7 +177,7 @@ func (c *Client) Write(ctx context.Context, samples model.Samples) error {
 		}
 
 		wg.Add(1)
-		c.producer.SendAsync(
+		producer.SendAsync(
 			context.Background(),
 			&pulsar.ProducerMessage{
 				Payload: bytes,
@@ -123,5 +193,5 @@ func (c *Client) Write(ctx context.Context, samples model.Samples) error {
 	}
 
 	wg.Wait()
-	return c.producer.Flush()
+	return producer.Flush()
 }

@@ -36,29 +36,66 @@ func newSampleNormalTenant() *Sample {
 	return s
 }
 
-func TestSerializeToJSON(t *testing.T) {
+func TestJSONSerializer_Marshal(t *testing.T) {
 	serializer := NewJSONSerializer()
 
 	for _, tc := range []struct {
+		name     string
 		input    *Sample
 		expected []byte
 	}{
 		{
+			"normal-sample",
 			newSampleNormal(),
 			[]byte(`{"value":[0,"456"],"metric":{"__name__":"foo","labelfoo":"label-bar"}}`),
 		},
 		{
+			"inf-sample",
 			newSampleInf(),
 			[]byte(`{"value":[10.001,"+Inf"],"metric":{"__name__":"foo","labelfoo":"label-bar"}}`),
 		},
 		{
+			"normal-sample-with-tenant-id",
 			newSampleNormalTenant(),
 			[]byte(`{"value":[0,"456"],"metric":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":"fake"}`),
 		},
 	} {
-		actual, err := serializer.Marshal(tc.input)
-		assert.Nil(t, err)
-		assert.JSONEqf(t, string(tc.expected), string(actual), "wrong json serialization found")
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := serializer.Marshal(tc.input)
+			assert.Nil(t, err)
+			assert.JSONEqf(t, string(tc.expected), string(actual), "wrong json serialization found")
+		})
+	}
+}
+
+func TestJSONSerializer_Unmarshal(t *testing.T) {
+	serializer := NewJSONSerializer()
+	for _, tc := range []struct {
+		name     string
+		input    []byte
+		expected *Sample
+	}{
+		{
+			"normal-sample",
+			[]byte(`{"value":[0,"456"],"metric":{"__name__":"foo","labelfoo":"label-bar"}}`),
+			newSampleNormal(),
+		},
+		{
+			"inf-sample",
+			[]byte(`{"value":[10.001,"+Inf"],"metric":{"__name__":"foo","labelfoo":"label-bar"}}`),
+			newSampleInf(),
+		},
+		{
+			"normal-sample-with-tenant-id",
+			[]byte(`{"value":[0,"456"],"metric":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":"fake"}`),
+			newSampleNormalTenant(),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := serializer.Unmarshal(tc.input)
+			assert.Nil(t, err)
+			assert.Equal(t, tc.expected, actual, "unexpected sample after unserialization")
+		})
 	}
 }
 
@@ -70,29 +107,79 @@ func BenchmarkSerializeToJSON(b *testing.B) {
 	}
 }
 
-func TestSerializeToJSONCompat(t *testing.T) {
+var testCasesLegacyUnmarshal = []struct {
+	name     string
+	input    []byte
+	expected *Sample
+}{
+	{
+		"normal-sample",
+		[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":""}`),
+		newSampleNormal(),
+	},
+	{
+		"normal-sample-with-label-name-missing",
+		[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"labelfoo":"label-bar"}}`),
+		newSampleNormal(),
+	},
+	{
+		"normal-sample-with-name-missing",
+		[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","labels":{"__name__":"foo","labelfoo":"label-bar"}}`),
+		newSampleNormal(),
+	},
+	{
+		"inf-sample",
+		[]byte(`{"value":"+Inf","timestamp":"1970-01-01T00:00:10.001Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":""}`),
+		newSampleInf(),
+	},
+	{
+		"normal-sample-with-tenant-id",
+		[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":"fake"}`),
+		newSampleNormalTenant(),
+	},
+}
+
+func TestJSONCompatSerializer_Marshal(t *testing.T) {
 	serializer := NewJSONCompatSerializer()
 
 	for _, tc := range []struct {
+		name     string
 		input    *Sample
 		expected []byte
 	}{
 		{
+			"normal-sample",
 			newSampleNormal(),
 			[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"}}`),
 		},
 		{
+			"inf-sample",
 			newSampleInf(),
 			[]byte(`{"value":"+Inf","timestamp":"1970-01-01T00:00:10.001Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"}}`),
 		},
 		{
+			"normal-sample-with-tenant-id",
 			newSampleNormalTenant(),
 			[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":"fake"}`),
 		},
 	} {
-		actual, err := serializer.Marshal(tc.input)
-		assert.Nil(t, err)
-		assert.JSONEqf(t, string(tc.expected), string(actual), "wrong json serialization found")
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := serializer.Marshal(tc.input)
+			assert.Nil(t, err)
+			assert.JSONEqf(t, string(tc.expected), string(actual), "wrong json serialization found")
+		})
+	}
+}
+
+func TestJSONCompatSerializer_Unmarshal(t *testing.T) {
+	serializer := NewJSONCompatSerializer()
+
+	for _, tc := range testCasesLegacyUnmarshal {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := serializer.Unmarshal(tc.input)
+			assert.Nil(t, err)
+			assert.Equal(t, tc.expected, actual, "unexpected sample after unserialization")
+		})
 	}
 }
 
@@ -104,23 +191,27 @@ func BenchmarkSerializeToJSONCompat(b *testing.B) {
 	}
 }
 
-func TestSerializeToAvro(t *testing.T) {
+func TestAvroJSONSerializer_Marshal(t *testing.T) {
 	serializer, err := NewAvroJSONSerializer(nil)
 	assert.Nil(t, err)
 
 	for _, tc := range []struct {
+		name     string
 		input    *Sample
 		expected []byte
 	}{
 		{
+			"normal-sample",
 			newSampleNormal(),
 			[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":""}`),
 		},
 		{
+			"inf-sample",
 			newSampleInf(),
 			[]byte(`{"value":"+Inf","timestamp":"1970-01-01T00:00:10.001Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":""}`),
 		},
 		{
+			"normal-sample-with-tenant-id",
 			newSampleNormalTenant(),
 			[]byte(`{"value":"456","timestamp":"1970-01-01T00:00:00Z","name":"foo","labels":{"__name__":"foo","labelfoo":"label-bar"},"tenant_id":"fake"}`),
 		},
@@ -128,6 +219,19 @@ func TestSerializeToAvro(t *testing.T) {
 		actual, err := serializer.Marshal(tc.input)
 		assert.Nil(t, err)
 		assert.JSONEqf(t, string(tc.expected), string(actual), "wrong json serialization found")
+	}
+}
+
+func TestAvroJSONSerializer_Unarshal(t *testing.T) {
+	serializer, err := NewAvroJSONSerializer(nil)
+	assert.Nil(t, err)
+
+	for _, tc := range testCasesLegacyUnmarshal {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := serializer.Unmarshal(tc.input)
+			assert.Nil(t, err)
+			assert.Equal(t, tc.expected, actual, "unexpected sample after unserialization")
+		})
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 
 type Serializer interface {
 	Marshal(*Sample) ([]byte, error)
+	Unmarshal([]byte) (*Sample, error)
 }
 
 // JSONSerializer represents the sample in the upstream model
@@ -29,6 +30,34 @@ func NewSample(s *model.Sample) *Sample {
 		},
 		Metric: s.Metric,
 	}
+}
+
+func newSampleFromJSONCompat(data []byte) (*Sample, error) {
+	var dataStruct struct {
+		Value     model.SampleValue `json:"value"`
+		Name      model.LabelValue  `json:"name"`
+		Labels    model.Metric      `json:"labels"`
+		TenantID  string            `json:"tenant_id"`
+		Timestamp time.Time         `json:"timestamp"`
+	}
+
+	if err := json.Unmarshal(data, &dataStruct); err != nil {
+		return nil, err
+	}
+
+	// if model.MetricNameLabel is not set add it from the separate name field
+	if _, ok := dataStruct.Labels[model.MetricNameLabel]; !ok && len(dataStruct.Name) > 0 {
+		dataStruct.Labels[model.MetricNameLabel] = dataStruct.Name
+	}
+
+	return &Sample{
+		Value: model.SamplePair{
+			Timestamp: model.TimeFromUnixNano(dataStruct.Timestamp.UnixNano()),
+			Value:     dataStruct.Value,
+		},
+		Metric:   dataStruct.Labels,
+		TenantID: dataStruct.TenantID,
+	}, nil
 }
 
 type Sample struct {
@@ -88,6 +117,15 @@ func (*JSONSerializer) Marshal(s *Sample) ([]byte, error) {
 	return json.Marshal(s)
 }
 
+func (*JSONSerializer) Unmarshal(data []byte) (*Sample, error) {
+	var s Sample
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
 func NewJSONSerializer() *JSONSerializer {
 	return &JSONSerializer{}
 }
@@ -98,6 +136,10 @@ type JSONCompatSerializer struct {
 
 func (*JSONCompatSerializer) Marshal(s *Sample) ([]byte, error) {
 	return json.Marshal(s.jsonCompat())
+}
+
+func (*JSONCompatSerializer) Unmarshal(data []byte) (*Sample, error) {
+	return newSampleFromJSONCompat(data)
 }
 
 func NewJSONCompatSerializer() *JSONCompatSerializer {
@@ -151,6 +193,10 @@ func (a *AvroJSONSerializer) Marshal(s *Sample) ([]byte, error) {
 	data := s.jsonCompat()
 	data["labels"] = labels
 	return a.codec.TextualFromNative(nil, data)
+}
+
+func (a *AvroJSONSerializer) Unmarshal(data []byte) (*Sample, error) {
+	return newSampleFromJSONCompat(data)
 }
 
 func NewAvroJSONSerializer(r io.Reader) (*AvroJSONSerializer, error) {

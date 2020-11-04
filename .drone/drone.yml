@@ -62,7 +62,7 @@ steps:
 - name: wait for pulsar being ready
   image: apachepulsar/pulsar-standalone:2.6.0
   commands:
-  - timeout 300 bash -c 'while ! /pulsar/bin/pulsar-admin --admin-url http://pulsar:8080 brokers healthcheck; do sleep 5; done' || false
+  - timeout 300 bash -c 'check_pulsar() { /pulsar/bin/pulsar-admin --admin-url http://pulsar:8080 "$@"; }; while ! check_pulsar brokers healthcheck || ! check_pulsar topics list public/default ; do sleep 5; done' || false
 
 - name: make integration TEST_PULSAR_URL=pulsar://pulsar:6650
   image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1

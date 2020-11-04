@@ -59,8 +59,8 @@ local pipeline(name) = {
         name: 'wait for pulsar being ready',
         image: pulsar_image,
         commands: [
-          // timeout after 5 min, test every 5 seconds
-          "timeout 300 bash -c 'while ! /pulsar/bin/pulsar-admin --admin-url http://%s:8080 brokers healthcheck; do sleep 5; done' || false" % pulsar_host,
+          // check for health, timeout after 5 min, test every 5 seconds
+          "timeout 300 bash -c 'check_pulsar() { /pulsar/bin/pulsar-admin --admin-url http://%s:8080 \"$@\"; }; while ! check_pulsar brokers healthcheck || ! check_pulsar topics list public/default ; do sleep 5; done' || false" % pulsar_host,
         ],
       },
       make('integration TEST_PULSAR_URL=pulsar://%s:6650' % pulsar_host),

@@ -78,7 +78,7 @@ func (p *produceCommand) pulsarClient() (*pulsar.Client, error) {
 		return nil, err
 	}
 
-	return client, nil
+	return client, client.InitProducer()
 }
 
 func (p *produceCommand) buildWriters() ([]writer, error) {

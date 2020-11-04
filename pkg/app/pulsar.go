@@ -76,7 +76,7 @@ func (cfg *pulsarConfig) addFlags(a flagger) {
 		Default("30s").DurationVar(&cfg.connectTimeout)
 	a.Flag("pulsar.serializer", pulsarSerializerHelp).
 		Default("json").StringVar(&cfg.serializer)
-	a.Flag("pulsar.topic", "The Pulsar topic to publish the metrics on.").
+	a.Flag("pulsar.topic", "The Pulsar topic to use for publishing or subscribing to metrics on.").
 		Default("metrics").StringVar(&cfg.topic)
 	a.Flag("pulsar.certificate-authority", "Path to the file that containing the trusted certificate authority for the connection to Pulsar.").
 		Default("").StringVar(&cfg.certificateAuthority)
@@ -118,6 +118,12 @@ type pulsarClientOpts func(cfg *pulsar.Config)
 func pulsarClientWithReplicaLabels(rl []string) pulsarClientOpts {
 	return func(cfg *pulsar.Config) {
 		cfg.ReplicaLabels = rl
+	}
+}
+
+func pulsarClientWithSubscription(sub string) pulsarClientOpts {
+	return func(cfg *pulsar.Config) {
+		cfg.Subscription = sub
 	}
 }
 

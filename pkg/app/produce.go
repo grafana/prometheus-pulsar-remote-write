@@ -35,10 +35,9 @@ type produceCommand struct {
 func newProduceCommand(app *App) *produceCommand {
 	name := "produce"
 	p := &produceCommand{
-		name:    name,
-		app:     app,
-		metrics: newMetrics(app.registry),
-		pulsar:  &pulsarConfig{},
+		name:   name,
+		app:    app,
+		pulsar: &pulsarConfig{},
 	}
 
 	cmd := app.app.Command(name, "Receive remote_write requests and produce messages on the pulsar bus").Default()
@@ -106,6 +105,9 @@ func (p *produceCommand) closeWriters(writers []writer) {
 }
 
 func (p *produceCommand) run(ctx context.Context) error {
+	if p.metrics == nil {
+		p.metrics = newMetrics(p.app.registry)
+	}
 	ctx, finish := p.app.signalHandler(ctx)
 	defer finish()
 

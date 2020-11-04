@@ -73,7 +73,7 @@ func NewClient(config Config) (*Client, error) {
 }
 
 func (c *Client) InitProducer() error {
-	_, err := c.consumer()
+	_, err := c.producer()
 	return err
 }
 

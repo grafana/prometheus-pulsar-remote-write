@@ -70,4 +70,4 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
     - name: Run integration test
-      run: TEST_PULSAR_URL=pulsar://127.0.0.1:6650 go test -v ./integration/...
+      run: make integration TEST_PULSAR_URL=pulsar://127.0.0.1:6650

@@ -52,6 +52,32 @@ depends_on:
 
 ---
 kind: pipeline
+name: integration
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: wait for pulsar being ready
+  image: apachepulsar/pulsar-standalone:2.6.0
+  commands:
+  - timeout 300 bash -c 'while ! /pulsar/bin/pulsar-admin --admin-url http://pulsar:8080 brokers healthcheck; do sleep 5; done' || false
+
+- name: make integration TEST_PULSAR_URL=pulsar://pulsar:6650
+  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
+  commands:
+  - make integration TEST_PULSAR_URL=pulsar://pulsar:6650
+
+services:
+- name: pulsar
+  image: apachepulsar/pulsar-standalone:2.6.0
+
+depends_on:
+- prelude
+
+---
+kind: pipeline
 name: release
 
 platform:
@@ -97,6 +123,7 @@ trigger:
 
 depends_on:
 - check
+- integration
 
 ---
 kind: pipeline

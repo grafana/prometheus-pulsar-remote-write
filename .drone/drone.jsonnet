@@ -50,8 +50,31 @@ local pipeline(name) = {
     ],
   },
 
+  pipeline('integration') {
+    local pulsar_host = 'pulsar',
+    local pulsar_image = 'apachepulsar/pulsar-standalone:2.6.0',
+    depends_on: ['prelude'],
+    steps: [
+      {
+        name: 'wait for pulsar being ready',
+        image: pulsar_image,
+        commands: [
+          // timeout after 5 min, test every 5 seconds
+          "timeout 300 bash -c 'while ! /pulsar/bin/pulsar-admin --admin-url http://%s:8080 brokers healthcheck; do sleep 5; done' || false" % pulsar_host,
+        ],
+      },
+      make('integration TEST_PULSAR_URL=pulsar://%s:6650' % pulsar_host),
+    ],
+    services+: [
+      {
+        name: pulsar_host,
+        image: pulsar_image,
+      },
+    ],
+  },
+
   pipeline('release') {
-    depends_on: ['check'],
+    depends_on: ['check', 'integration'],
     steps: [
       make('binaries'),
       make('shas'),

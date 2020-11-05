@@ -71,7 +71,7 @@ func skipWithoutPulsar(t *testing.T) {
 	}
 }
 
-func runBatch(writeClient *remote.Client, from, to int) error {
+func runBatch(writeClient remote.WriteClient, from, to int) error {
 	var (
 		req = prompb.WriteRequest{
 			Timeseries: make([]prompb.TimeSeries, 0, to-from),
@@ -207,7 +207,7 @@ func (ti *testIntegration) test(t *testing.T) {
 		f(remoteWriteConfig)
 	}
 
-	remoteWrite, err := remote.NewClient("test", remoteWriteConfig)
+	remoteWrite, err := remote.NewWriteClient("test", remoteWriteConfig)
 	assert.Nil(t, err)
 
 	// send 2 times a batch of 4 messages to the bus

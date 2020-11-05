@@ -16,6 +16,10 @@ build: ## Build go binary
 test: ## Run all tests
 	go test -race ./...
 
+.PHONY: integration
+integration: ## Run integration suite
+	go test -v ./integration/...
+
 .PHONY: bench
 bench: ## Run all benchmarks
 	go test -bench . ./...

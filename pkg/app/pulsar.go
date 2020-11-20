@@ -84,7 +84,7 @@ func (cfg *pulsarConfig) addFlags(a flagger) {
 		Default("").StringVar(&cfg.clientCertificate)
 	a.Flag("pulsar.client-key", "Path to the file containing the client key used for the connection to Pulsar.").
 		Default("").StringVar(&cfg.clientKey)
-	a.Flag("pulsar.insecure-skip-tls-verify", "Configure whether the Pulsar client accept untrusted TLS certificate from broker.").
+	a.Flag("pulsar.insecure-skip-tls-verify", "Configure whether the Pulsar client accepts untrusted TLS certificate from broker.").
 		Default("false").BoolVar(&cfg.insecureSkipTLSVerify)
 	a.Flag("pulsar.insecure-skip-tls-validate-hostname", "Configure whether the Pulsar client skips to verify the validity of the host name from broker.").
 		Default("false").BoolVar(&cfg.insecureSkipTLSValidateHostname)

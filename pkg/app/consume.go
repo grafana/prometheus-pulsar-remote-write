@@ -33,7 +33,7 @@ func newConsumeCommand(app *App) *consumeCommand {
 		pulsar: &pulsarConfig{},
 	}
 
-	cmd := app.app.Command(name, "Consume metrics on the pulsar bus and send them remote_write requests")
+	cmd := app.app.Command(name, "Consume metrics on the pulsar bus and send them as remote_write requests")
 
 	c.pulsar.addFlags(cmd)
 	cmd.Flag("send-timeout", "The timeout to use when sending samples to the remote_write endpoint.").

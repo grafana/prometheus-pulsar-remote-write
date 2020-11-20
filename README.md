@@ -46,7 +46,7 @@ Commands:
     Receive remote_write requests and produce messages on the pulsar bus
 
   consume --remote-write.url=REMOTE-WRITE.URL [<flags>]
-    Consume metrics on the pulsar bus and send them remote_write requests
+    Consume metrics on the pulsar bus and send them as remote_write requests
 
 
 usage: prometheus-pulsar-remote-write produce [<flags>]
@@ -160,7 +160,7 @@ Flags:
       --pulsar.client-key=""     Path to the file containing the client key used
                                  for the connection to Pulsar.
       --pulsar.insecure-skip-tls-verify  
-                                 Configure whether the Pulsar client accept
+                                 Configure whether the Pulsar client accepts
                                  untrusted TLS certificate from broker.
       --pulsar.insecure-skip-tls-validate-hostname  
                                  Configure whether the Pulsar client skips to
@@ -179,7 +179,7 @@ Flags:
 
 usage: prometheus-pulsar-remote-write consume --remote-write.url=REMOTE-WRITE.URL [<flags>]
 
-Consume metrics on the pulsar bus and send them remote_write requests
+Consume metrics on the pulsar bus and send them as remote_write requests
 
 Flags:
   -h, --help                    Show context-sensitive help (also try
@@ -288,7 +288,7 @@ Flags:
       --pulsar.client-key=""    Path to the file containing the client key used
                                 for the connection to Pulsar.
       --pulsar.insecure-skip-tls-verify  
-                                Configure whether the Pulsar client accept
+                                Configure whether the Pulsar client accepts
                                 untrusted TLS certificate from broker.
       --pulsar.insecure-skip-tls-validate-hostname  
                                 Configure whether the Pulsar client skips to

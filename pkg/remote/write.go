@@ -27,8 +27,15 @@ type Write struct {
 	samplePerTenantID   map[string][]pulsar.ReceivedSample
 	deadlinePerTenantID map[string]time.Time
 
-	BatchSize     int
+	// BatchSize is the amount of samples that are aggregated into a single
+	// remote write request
+	BatchSize int
+	// BatchMaxDelay is the maximum delay acceptable for a batch to wait to
+	// reach the BatchSize
 	BatchMaxDelay time.Duration
+
+	// checkInterval limits how often we want to check on send conditions for batches are met
+	checkInterval time.Duration
 }
 
 type WriteOpts func(o *Write)
@@ -48,6 +55,7 @@ func NewWrite(opts ...WriteOpts) *Write {
 
 		BatchSize:     100,
 		BatchMaxDelay: 5 * time.Second,
+		checkInterval: 100 * time.Millisecond,
 	}
 
 	for _, opt := range opts {
@@ -94,7 +102,7 @@ func NewWriteClient(conf *ClientConfig) (remote.WriteClient, error) {
 }
 
 func (w *Write) Run(ctx context.Context, sampleCh chan pulsar.ReceivedSample, client remote.WriteClient) error {
-	tick := time.NewTicker(100 * time.Millisecond)
+	tick := time.NewTicker(w.checkInterval)
 	defer tick.Stop()
 
 	// this is set when a retry able error happend
@@ -109,7 +117,11 @@ func (w *Write) Run(ctx context.Context, sampleCh chan pulsar.ReceivedSample, cl
 		return sampleCh
 	}
 
+	var samplesSinceCheck int
+	var deadlineCheck time.Time
+
 receive:
+
 	for {
 		// wait for either tick or incoming sample, handle closed context
 		select {
@@ -127,10 +139,22 @@ receive:
 			w.samplePerTenantID[tenantID] = append(w.samplePerTenantID[tenantID],
 				sample,
 			)
+			samplesSinceCheck += 1
 		}
 
-		// reset retryable error
+		// continue reading samples from channel, if no errors has happened, we
+		// didn't hit the check deadline and the samples received are smaller
+		// than the BatchSize:
+		if !errRemoteWriteRetryable &&
+			time.Now().Before(deadlineCheck) &&
+			samplesSinceCheck < w.BatchSize {
+			continue
+		}
+
+		// reset check conditions
 		errRemoteWriteRetryable = false
+		samplesSinceCheck = 0
+		deadlineCheck = time.Now().Add(w.checkInterval)
 
 		// loop through tenants and find metrics to send
 		for tenantID, samples := range w.samplePerTenantID {
@@ -150,16 +174,13 @@ receive:
 				return err
 			}
 
-			if err != nil {
-				return err
-			}
-
 			compressed := snappy.Encode(nil, data)
 
 			if err := client.Store(mcontext.ContextWithTenantID(ctx, tenantID), compressed); err != nil {
 				errRec := &remote.RecoverableError{}
 				if errors.As(err, errRec) {
 					_ = level.Warn(w.logger).Log("msg", "failed remote_write request, will retry", "error", err)
+					errRemoteWriteRetryable = true
 					continue
 				}
 

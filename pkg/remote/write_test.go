@@ -2,6 +2,7 @@ package remote
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -22,7 +23,9 @@ type reqWithContext struct {
 }
 
 type fakeWriteClient struct {
-	t *testing.T
+	t testing.TB
+
+	benchmark bool
 
 	errCh chan error
 	reqCh chan reqWithContext
@@ -30,6 +33,9 @@ type fakeWriteClient struct {
 
 // Store stores the given samples in the remote storage.
 func (f *fakeWriteClient) Store(ctx context.Context, compressed []byte) error {
+	if f.benchmark {
+		return nil
+	}
 	reqBuf, err := snappy.Decode(nil, compressed)
 	require.NoError(f.t, err)
 
@@ -56,7 +62,7 @@ func (f *fakeWriteClient) Endpoint() string {
 	panic("not implemented") // TODO: Implement
 }
 
-func newFakeWriteClient(t *testing.T) *fakeWriteClient {
+func newFakeWriteClient(t testing.TB) *fakeWriteClient {
 	return &fakeWriteClient{
 		t:     t,
 		errCh: make(chan error),
@@ -137,6 +143,7 @@ func TestWriter_Run_BatchSize_NoTenantID(t *testing.T) {
 	wc := newFakeWriteClient(t)
 
 	// reduce size to test
+	w.checkInterval = time.Microsecond
 	w.BatchSize = 2
 	// avoid hitting that
 	w.BatchMaxDelay = time.Hour
@@ -178,6 +185,7 @@ func TestWriter_Run_BatchSize_TenantIDs(t *testing.T) {
 	wc := newFakeWriteClient(t)
 
 	// reduce size to test
+	w.checkInterval = time.Microsecond
 	w.BatchSize = 2
 	// avoid hitting that
 	w.BatchMaxDelay = time.Hour
@@ -217,4 +225,50 @@ func TestWriter_Run_BatchSize_TenantIDs(t *testing.T) {
 		assert.Equal(t, labelsPrompb, req.Timeseries[1].Labels)
 		assert.Equal(t, []prompb.Sample{sampleInf}, req.Timeseries[1].Samples)
 	}
+}
+
+func benchmarkWriter(tenants, batchSize int, b *testing.B) {
+	samplesCh := make(chan pulsar.ReceivedSample)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	w := NewWrite()
+	w.BatchSize = batchSize
+
+	wc := newFakeWriteClient(b)
+	wc.benchmark = true
+
+	// watch channel
+	go func() {
+		err := w.Run(ctx, samplesCh, wc)
+		require.NoError(b, err)
+	}()
+
+	tenantNames := make([]string, tenants)
+	for t := 0; t < tenants; t++ {
+		tenantNames[t] = fmt.Sprintf("team-%d", t)
+	}
+
+	b.StartTimer()
+	for n := 0; n < b.N; n++ {
+		for t := 0; t < tenants; t++ {
+			samplesCh <- withTenantID(newSampleNormal(), tenantNames[t])
+		}
+	}
+	b.ReportMetric(float64(tenants)*float64(b.N), "samples")
+	b.StopTimer()
+}
+
+func BenchmarkWriter1Tenants100BatchSize(b *testing.B) {
+	benchmarkWriter(1, 100, b)
+}
+func BenchmarkWriter50Tenants100BatchSize(b *testing.B) {
+	benchmarkWriter(50, 100, b)
+}
+func BenchmarkWriter100Tenants100BatchSize(b *testing.B) {
+	benchmarkWriter(100, 1000, b)
+}
+func BenchmarkWriter500Tenants100BatchSize(b *testing.B) {
+	benchmarkWriter(500, 100, b)
 }

@@ -30,6 +30,10 @@ type App struct {
 	cmdConsume *consumeCommand
 }
 
+func (a *App) WithConsumeBatchMaxDelay(d time.Duration) {
+	a.cmdConsume.batchMaxDelay = d
+}
+
 type flagger interface {
 	Flag(name, help string) *kingpin.FlagClause
 }

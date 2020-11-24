@@ -1,12 +1,10 @@
-package app
+package integration
 
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"math/rand"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -20,56 +18,8 @@ import (
 	prommodel "github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/prometheus/prometheus/storage/remote"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-
-	adapter "github.com/grafana/prometheus-pulsar-remote-write/pkg/app"
 )
-
-type Clocker interface {
-	Now() time.Time
-}
-
-var clock Clocker = &testClock{}
-
-var app = adapter.New()
-
-type testClock struct {
-	t time.Time
-}
-
-// every call to now will add another second to the time
-func (c *testClock) Now() time.Time {
-	if c.t.IsZero() {
-		c.t = time.Unix(1588462000, 0)
-	} else {
-		c.t = c.t.Add(time.Second)
-	}
-	return c.t
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyz")
-
-// return a random string
-func randSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
-
-const envTestPulsarURL = "TEST_PULSAR_URL"
-
-func skipWithoutPulsar(t *testing.T) {
-	if os.Getenv(envTestPulsarURL) == "" {
-		t.Skipf("Integration tests skipped as not pulsar URL provided in environment variable %s.", envTestPulsarURL)
-	}
-}
 
 func runBatch(writeClient remote.WriteClient, from, to int) error {
 	var (
@@ -110,21 +60,7 @@ func runBatch(writeClient remote.WriteClient, from, to int) error {
 	return nil
 }
 
-func getRandomFreePort() (int, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return 0, err
-	}
-
-	l, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return 0, err
-	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port, nil
-}
-
-type testIntegration struct {
+type testProduceIntegration struct {
 	remoteWriteConfigHook func(*remote.ClientConfig)
 	consumeMessage        func(pulsar.Message)
 }
@@ -157,7 +93,7 @@ func isReady(ctx context.Context, url string) error {
 	}
 }
 
-func (ti *testIntegration) test(t *testing.T) {
+func (ti *testProduceIntegration) test(t *testing.T) {
 	skipWithoutPulsar(t)
 
 	port, err := getRandomFreePort()
@@ -259,13 +195,13 @@ func (ti *testIntegration) test(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestIntegrationDefaultJSON(t *testing.T) {
-	ti := &testIntegration{}
+func TestIntegrationProduceDefaultJSON(t *testing.T) {
+	ti := &testProduceIntegration{}
 	ti.test(t)
 }
 
-func TestIntegrationBasicAuthTenantIDJSON(t *testing.T) {
-	ti := &testIntegration{
+func TestIntegrationProduceBasicAuthTenantIDJSON(t *testing.T) {
+	ti := &testProduceIntegration{
 		remoteWriteConfigHook: func(c *remote.ClientConfig) {
 			c.HTTPClientConfig.BasicAuth = &promconfig.BasicAuth{
 				Username: "my-org-id",
@@ -282,13 +218,4 @@ func TestIntegrationBasicAuthTenantIDJSON(t *testing.T) {
 		},
 	}
 	ti.test(t)
-}
-
-func TestMain(m *testing.M) {
-	flag.Parse()
-	// reduce verbosity of logrus which is used by the pulsar golang library
-	if !testing.Verbose() {
-		logrus.SetLevel(logrus.WarnLevel)
-	}
-	os.Exit(m.Run())
 }

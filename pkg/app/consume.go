@@ -23,6 +23,7 @@ type consumeCommand struct {
 	pulsar             *pulsarConfig
 	pulsarSubscription string
 	remoteWriteURL     string
+	batchMaxDelay      time.Duration
 }
 
 func newConsumeCommand(app *App) *consumeCommand {
@@ -124,6 +125,11 @@ func (c *consumeCommand) run(ctx context.Context) error {
 	}()
 
 	write := remote.NewWrite(remote.WithLogger(c.app.logger))
+
+	// set batch max delay if set
+	if c.batchMaxDelay > 0 {
+		write.BatchMaxDelay = c.batchMaxDelay
+	}
 
 	return write.Run(ctx, sampleCh, remoteClient)
 }

@@ -71,7 +71,17 @@ func (c *consumeCommand) run(ctx context.Context) error {
 
 	client, err := c.pulsarClient()
 	if err != nil {
-		return fmt.Errorf("failed creating consumer: %w", err)
+		return fmt.Errorf("failed creating pulsar client: %w", err)
+	}
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			_ = level.Warn(c.app.logger).Log("msg", "Error closing pulsar client", "error", err)
+		}
+	}()
+
+	if err := client.InitConsumer(); err != nil {
+		return fmt.Errorf("failed creating pulsar consumer: %w", err)
 	}
 	_ = level.Info(c.app.logger).Log("msg", "Created consumer successfully", "name", client.Name())
 

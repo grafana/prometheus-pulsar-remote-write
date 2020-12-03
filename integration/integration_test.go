@@ -23,8 +23,6 @@ type testClock struct {
 	t time.Time
 }
 
-var app = mapp.New()
-
 // every call to now will add another second to the time
 func (c *testClock) Now() time.Time {
 	if c.t.IsZero() {
@@ -71,6 +69,8 @@ func getRandomFreePort() (int, error) {
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
+
+var app = mapp.New()
 
 func TestMain(m *testing.M) {
 	// lower delay to run tests faster

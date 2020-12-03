@@ -121,7 +121,6 @@ func (w *Write) Run(ctx context.Context, sampleCh chan pulsar.ReceivedSample, cl
 	var deadlineCheck time.Time
 
 receive:
-
 	for {
 		// wait for either tick or incoming sample, handle closed context
 		select {

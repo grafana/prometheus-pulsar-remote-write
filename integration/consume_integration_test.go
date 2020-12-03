@@ -220,7 +220,7 @@ func (ti *testConsumeIntegration) test(t *testing.T) {
 		}
 
 		if instancesToBeReceivedByTimestamp.finishedSamples() == samplesEach {
-			t.Logf("received %d samples per series", samplesEach)
+			t.Logf("received %d samples per series for every instance", samplesEach)
 			break
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/grafana/prometheus-pulsar-remote-write/pkg/metrics"
 	"net/url"
 	"time"
 
@@ -19,6 +20,7 @@ type consumeCommand struct {
 	app  *App
 	name string
 
+	metrics            *metrics.ConsumerMetrics
 	sendTimeout        time.Duration
 	pulsar             *pulsarConfig
 	pulsarSubscription string
@@ -65,6 +67,9 @@ func (c *consumeCommand) pulsarClient() (*pulsar.Client, error) {
 }
 
 func (c *consumeCommand) run(ctx context.Context) error {
+	if c.metrics == nil {
+		c.metrics = metrics.NewConsumerMetrics(c.app.registry)
+	}
 	ctx, finish := c.app.signalHandler(ctx)
 	defer finish()
 
@@ -126,7 +131,9 @@ func (c *consumeCommand) run(ctx context.Context) error {
 		cancel()
 	}()
 
-	write := remote.NewWrite(remote.WithLogger(c.app.logger))
+	write := remote.NewWrite(
+		remote.WithLogger(c.app.logger),
+		remote.WithMetrics(c.metrics))
 
 	// set batch max delay if set
 	if c.batchMaxDelay > 0 {

@@ -70,6 +70,11 @@ func (c *consumeCommand) run(ctx context.Context) error {
 		return errors.New("no pulsar URL defined")
 	}
 
+	remoteURL, err := url.Parse(c.remoteWriteURL)
+	if err != nil {
+		return fmt.Errorf("failed creating remote_write URL: %w", err)
+	}
+
 	client, err := c.pulsarClient()
 	if err != nil {
 		return fmt.Errorf("failed creating pulsar client: %w", err)
@@ -85,11 +90,6 @@ func (c *consumeCommand) run(ctx context.Context) error {
 		return fmt.Errorf("failed creating pulsar consumer: %w", err)
 	}
 	_ = level.Info(c.app.logger).Log("msg", "Created consumer successfully", "name", client.Name())
-
-	remoteURL, err := url.Parse(c.remoteWriteURL)
-	if err != nil {
-		return fmt.Errorf("failed creating remote_write URL: %w", err)
-	}
 
 	// create remote write client
 	remoteClient, err := remote.NewWriteClient(&remote.ClientConfig{
@@ -120,7 +120,7 @@ func (c *consumeCommand) run(ctx context.Context) error {
 
 	go func() {
 		<-done
-		_ = level.Debug(c.app.logger).Log("msg", "Recevier stopped", "name", client.Name())
+		_ = level.Debug(c.app.logger).Log("msg", "Receiver stopped", "name", client.Name())
 		cancel()
 	}()
 

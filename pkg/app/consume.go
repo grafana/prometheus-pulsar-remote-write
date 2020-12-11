@@ -48,12 +48,14 @@ func newConsumeCommand(app *App) *consumeCommand {
 }
 
 func (c *consumeCommand) pulsarClient() (*pulsar.Client, error) {
+	clientOptions := pulsarClientWithSubscription(c.pulsarSubscription)
+
 	// TODO: Not too sure how relevant it is for consuming from the bus
 	//clientOptions.OperationTimeout = p.readTimeout
 
 	client, err := c.pulsar.client(
 		c.app.logger,
-		pulsarClientWithSubscription(c.pulsarSubscription),
+		clientOptions,
 	)
 	if err != nil {
 		return nil, err

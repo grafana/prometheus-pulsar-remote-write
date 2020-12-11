@@ -105,7 +105,11 @@ func (w *Write) Run(ctx context.Context, sampleCh chan pulsar.ReceivedSample, cl
 	tick := time.NewTicker(w.checkInterval)
 	defer tick.Stop()
 
-	// this is set when a retry able error happend
+	// This is true when a retriable error happened. As the messages we read
+	// from Pulsar can be for any tenant, we need to block all consumption, to
+	// avoid overloading the adapter.
+	//
+	// TODO: Figure out a better way though e.g. per tenant queues.
 	errRemoteWriteRetryable := false
 	blockingSampleCh := make(chan pulsar.ReceivedSample)
 

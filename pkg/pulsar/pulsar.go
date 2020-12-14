@@ -157,6 +157,72 @@ func (c *Client) Close() error {
 	return nil
 }
 
+type ReceivedSample struct {
+	Sample  *model.Sample
+	Context context.Context
+	Ack     func()
+	Nack    func()
+}
+
+// Receiver watches the queue for relevant samples, unserializes them and sends
+// via the sampleCh. A channel is returned itself, to wait for the work loop to
+// finish
+func (c *Client) Receiver(ctx context.Context, sampleCh chan ReceivedSample) (done chan struct{}, err error) {
+	consumer, err := c.consumer()
+	if err != nil {
+		return nil, err
+	}
+
+	done = make(chan struct{})
+
+	go func() {
+		defer close(done)
+
+		recv := consumer.Chan()
+
+		for {
+			select {
+			case msg := <-recv:
+
+				id := msg.Message.ID()
+				payload := msg.Message.Payload()
+
+				sample, err := c.serializer.Unmarshal(payload)
+				if err != nil {
+					_ = level.Error(c.logger).Log(
+						"msg", "Cannot unserialize payload, skipping message",
+						"err", err,
+						"msg_id", id,
+						"payload", string(payload),
+					)
+					// ack the message, as the payload is immutable, it will not become correct in the future.
+					consumer.AckID(id)
+					continue
+				}
+
+				sampleCh <- ReceivedSample{
+					Context: mcontext.ContextWithTenantID(ctx, sample.TenantID),
+					Nack: func() {
+						consumer.NackID(id)
+					},
+					Ack: func() {
+						consumer.AckID(id)
+					},
+					Sample: &model.Sample{
+						Metric:    sample.Metric,
+						Timestamp: sample.Value.Timestamp,
+						Value:     sample.Value.Value,
+					},
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return done, nil
+}
+
 func (c *Client) Write(ctx context.Context, samples model.Samples) error {
 	producer, err := c.producer()
 	if err != nil {

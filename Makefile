@@ -3,6 +3,8 @@ GIT_SHA    := $(shell git rev-parse --short HEAD)
 
 BUILD_IMAGE := grafana/prometheus-pulsar-remote-write-build-image
 
+README_COMMAND := go build && { ./prometheus-pulsar-remote-write help && ./prometheus-pulsar-remote-write help produce && ./prometheus-pulsar-remote-write help consume ; } 2>&1
+
 # from https://suva.sh/posts/well-documented-makefiles/
 .PHONY: help
 help:  ## Display this help
@@ -30,11 +32,11 @@ lint: ## Lint
 
 .PHONY: verify-readme
 verify-readme: ## Ensure the README.md is update to date
-	go build && ./prometheus-pulsar-remote-write help produce 2>&1 | go run hack/update-readme.go
+	$(README_COMMAND) | go run hack/update-readme.go
 
 .PHONY: update-readme
 update-readme: ## Update the README.md is update to date
-	go build && ./prometheus-pulsar-remote-write help produce 2>&1 | go run hack/update-readme.go --update
+	$(README_COMMAND) | go run hack/update-readme.go --update
 
 .PHONY: image
 image: ## Build docker image

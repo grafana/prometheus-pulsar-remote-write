@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+const (
+	HTTPHeaderTenantID = "X-Scope-OrgID"
+)
+
 type realClock struct {
 }
 
@@ -28,7 +32,7 @@ func TenantIDHandler(next http.Handler) http.Handler {
 		// check for basic auth header as first to gather the tenant ID. If not available use the header field for OrgID
 		if user, _, ok := r.BasicAuth(); ok {
 			tenantID = user
-		} else if header := r.Header.Get("X-Scope-OrgID"); header != "" {
+		} else if header := r.Header.Get(HTTPHeaderTenantID); header != "" {
 			tenantID = header
 		}
 		next.ServeHTTP(w, r.WithContext(ContextWithTenantID(r.Context(), tenantID)))

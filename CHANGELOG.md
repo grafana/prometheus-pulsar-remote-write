@@ -1,5 +1,9 @@
 # Changelog
 
+## master
+
+* [FEATURE] Add consume mode, which consumes metrics on the pulsar bus and send them as remote_write requests. #34
+
 ## 0.1.2 / 2020-09-11
 
 * [ENHANCEMENT] Add pprof endpoints by default and add parameter `--web.disable-pprof` to disable them. #23

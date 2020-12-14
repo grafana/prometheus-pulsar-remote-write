@@ -76,7 +76,7 @@ func (cfg *pulsarConfig) addFlags(a flagger) {
 		Default("30s").DurationVar(&cfg.connectTimeout)
 	a.Flag("pulsar.serializer", pulsarSerializerHelp).
 		Default("json").StringVar(&cfg.serializer)
-	a.Flag("pulsar.topic", "The Pulsar topic to publish the metrics on.").
+	a.Flag("pulsar.topic", "The Pulsar topic to use for publishing or subscribing to metrics on.").
 		Default("metrics").StringVar(&cfg.topic)
 	a.Flag("pulsar.certificate-authority", "Path to the file that containing the trusted certificate authority for the connection to Pulsar.").
 		Default("").StringVar(&cfg.certificateAuthority)
@@ -84,7 +84,7 @@ func (cfg *pulsarConfig) addFlags(a flagger) {
 		Default("").StringVar(&cfg.clientCertificate)
 	a.Flag("pulsar.client-key", "Path to the file containing the client key used for the connection to Pulsar.").
 		Default("").StringVar(&cfg.clientKey)
-	a.Flag("pulsar.insecure-skip-tls-verify", "Configure whether the Pulsar client accept untrusted TLS certificate from broker.").
+	a.Flag("pulsar.insecure-skip-tls-verify", "Configure whether the Pulsar client accepts untrusted TLS certificate from broker.").
 		Default("false").BoolVar(&cfg.insecureSkipTLSVerify)
 	a.Flag("pulsar.insecure-skip-tls-validate-hostname", "Configure whether the Pulsar client skips to verify the validity of the host name from broker.").
 		Default("false").BoolVar(&cfg.insecureSkipTLSValidateHostname)
@@ -118,6 +118,12 @@ type pulsarClientOpts func(cfg *pulsar.Config)
 func pulsarClientWithReplicaLabels(rl []string) pulsarClientOpts {
 	return func(cfg *pulsar.Config) {
 		cfg.ReplicaLabels = rl
+	}
+}
+
+func pulsarClientWithSubscription(sub string) pulsarClientOpts {
+	return func(cfg *pulsar.Config) {
+		cfg.Subscription = sub
 	}
 }
 

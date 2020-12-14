@@ -27,6 +27,11 @@ type App struct {
 	gatherer prometheus.Gatherer
 
 	cmdProduce *produceCommand
+	cmdConsume *consumeCommand
+}
+
+func (a *App) WithConsumeBatchMaxDelay(d time.Duration) {
+	a.cmdConsume.batchMaxDelay = d
 }
 
 type flagger interface {
@@ -68,6 +73,7 @@ func New() *App {
 	}
 
 	a.cmdProduce = newProduceCommand(a)
+	a.cmdConsume = newConsumeCommand(a)
 
 	return a
 }
@@ -115,6 +121,8 @@ func (a *App) Run(ctx context.Context, args ...string) error {
 	switch cmd {
 	case a.cmdProduce.name:
 		err = a.cmdProduce.run(ctx)
+	case a.cmdConsume.name:
+		err = a.cmdConsume.run(ctx)
 	default:
 		return fmt.Errorf("error unknown command %s", cmd)
 	}

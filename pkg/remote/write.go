@@ -22,9 +22,11 @@ import (
 	"github.com/grafana/prometheus-pulsar-remote-write/pkg/version"
 )
 
+const remoteName string = "prometheus"
+
 type Write struct {
 	logger  log.Logger
-	metrics *metrics.ConsumerMetrics
+	metrics *metrics.Metrics
 
 	samplePerTenantID   map[string][]pulsar.ReceivedSample
 	deadlinePerTenantID map[string]time.Time
@@ -48,7 +50,7 @@ func WithLogger(l log.Logger) WriteOpts {
 	}
 }
 
-func WithMetrics(m *metrics.ConsumerMetrics) WriteOpts {
+func WithMetrics(m *metrics.Metrics) WriteOpts {
 	return func(w *Write) {
 		w.metrics = m
 	}
@@ -57,7 +59,7 @@ func WithMetrics(m *metrics.ConsumerMetrics) WriteOpts {
 func NewWrite(opts ...WriteOpts) *Write {
 	w := &Write{
 		logger: log.NewNopLogger(),
-		metrics: metrics.NewConsumerMetricsDefault(),
+		metrics: metrics.NewNopMetrics(),
 
 		samplePerTenantID:   make(map[string][]pulsar.ReceivedSample),
 		deadlinePerTenantID: make(map[string]time.Time),
@@ -187,6 +189,7 @@ receive:
 				return err
 			}
 
+			w.metrics.ReceivedSamples.WithLabelValues(tenantID).Add(float64(len(samples)))
 			compressed := snappy.Encode(nil, data)
 
 			begin := time.Now()
@@ -197,7 +200,7 @@ receive:
 				errRec := &remote.RecoverableError{}
 				if errors.As(err, errRec) {
 					_ = level.Warn(w.logger).Log("msg", "failed remote_write request, will retry", "error", err)
-					w.metrics.RecoverableWriteErrors.WithLabelValues(tenantID).Inc()
+					w.metrics.RemoteRetries.WithLabelValues(remoteName, tenantID).Inc()
 					errRemoteWriteRetryable = true
 					continue
 				}
@@ -206,8 +209,7 @@ receive:
 				// acked, as we otherwise would get them redelivered through
 				// pulsar
 				_ = level.Error(w.logger).Log("msg", "failed remote_write reqeust", "error", err)
-				w.metrics.NonRecoverableWriteErrors.WithLabelValues(tenantID).Inc()
-
+				w.metrics.FailedSamples.WithLabelValues(remoteName, tenantID).Add(float64(len(samples)))
 			} else {
 				_ = level.Debug(logger).Log(
 					"msg", "remote_write request succesful",
@@ -215,7 +217,7 @@ receive:
 				)
 
 				// Only record timing for successful writes
-				w.metrics.WriteBatchDuration.WithLabelValues(tenantID).Observe(duration)
+				w.metrics.SentBatchDuration.WithLabelValues(remoteName, tenantID).Observe(duration)
 			}
 
 			// ack all the messages, for both successes and non-recoverable
@@ -227,7 +229,7 @@ receive:
 			// Add all samples to the total number written since they've been successfully
 			// written or they encountered a non-retryable error and we're ACK-ing them and
 			// not attempting to write them again.
-			w.metrics.WrittenSamples.Add(float64(len(samples)))
+			w.metrics.SentSamples.WithLabelValues(remoteName, tenantID).Add(float64(len(samples)))
 
 			delete(w.samplePerTenantID, tenantID)
 			delete(w.deadlinePerTenantID, tenantID)

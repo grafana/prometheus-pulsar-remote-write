@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/grafana/prometheus-pulsar-remote-write/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/promlog"
 	promlogflag "github.com/prometheus/common/promlog/flag"
@@ -23,6 +24,7 @@ type App struct {
 	logger log.Logger
 	cfg    *config
 
+	metrics  *metrics.Metrics
 	registry prometheus.Registerer
 	gatherer prometheus.Gatherer
 
@@ -68,6 +70,7 @@ func New() *App {
 	a := &App{
 		app:      app,
 		cfg:      cfg,
+		metrics:  metrics.NewMetrics(prometheus.DefaultRegisterer),
 		registry: prometheus.DefaultRegisterer,
 		gatherer: prometheus.DefaultGatherer,
 	}

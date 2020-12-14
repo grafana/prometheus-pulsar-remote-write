@@ -67,7 +67,7 @@ func newRemoteWrite(t testing.TB) *remoteWrite {
 	return rw
 }
 
-func instanceLabels(from, to int) []string {
+func instanceLabels(from int, to int) []string {
 	labels := make([]string, to-from)
 	for i := from; i < to; i++ {
 		labels[i-from] = fmt.Sprintf("instance%000d", i)

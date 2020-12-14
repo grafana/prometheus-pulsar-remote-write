@@ -189,13 +189,14 @@ func (c *Client) Receiver(ctx context.Context, sampleCh chan ReceivedSample) (do
 
 				sample, err := c.serializer.Unmarshal(payload)
 				if err != nil {
-					// TODO: Decide if that should be ack or nack
-					_ = level.Warn(c.logger).Log(
+					_ = level.Error(c.logger).Log(
 						"msg", "Cannot unserialize payload, skipping message",
 						"err", err,
 						"msg_id", id,
 						"payload", string(payload),
 					)
+					// ack the message, as the payload is immutable, it will not become correct in the future.
+					consumer.AckID(id)
 					continue
 				}
 

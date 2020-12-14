@@ -199,7 +199,8 @@ receive:
 				)
 			}
 
-			// Ack the messages
+			// ack all the messages, for both successes and non-recoverable
+			// errors, as otherwise they would get redelivered through pulsar
 			for _, s := range samples {
 				s.Ack()
 			}

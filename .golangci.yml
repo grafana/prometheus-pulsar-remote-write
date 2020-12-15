@@ -1,0 +1,8 @@
+---
+linters-settings:
+  goimports:
+    local-prefixes: github.com/grafana/prometheus-pulsar-remote-write
+linters:
+  enable:
+    - goimports
+    - gofmt

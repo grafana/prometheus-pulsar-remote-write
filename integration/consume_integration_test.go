@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -15,17 +16,21 @@ import (
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/grafana/prometheus-pulsar-remote-write/pkg/app"
 	mcontext "github.com/grafana/prometheus-pulsar-remote-write/pkg/context"
 	mpulsar "github.com/grafana/prometheus-pulsar-remote-write/pkg/pulsar"
 )
 
 type testConsumeIntegration struct {
-	tenantID string
+	app             *app.App
+	tenantID        string
+	expectedMetrics int
 }
 
 type reqWithContext struct {
@@ -155,7 +160,7 @@ func (ti *testConsumeIntegration) test(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		t.Logf("run adapter with args=%v", args)
-		err := app.Run(adapterCtx, args...)
+		err := ti.app.Run(adapterCtx, args...)
 		assert.NoError(t, err)
 	}()
 
@@ -225,6 +230,19 @@ func (ti *testConsumeIntegration) test(t *testing.T) {
 		}
 	}
 
+	// Check the number of metrics incremented during this test (for consume mode, we expect
+	// three metrics with a single value for each label: two counts and the timing histogram since
+	// there shouldn't be any errors).
+	actualMetrics, err := testutil.GatherAndCount(
+		ti.app.Gatherer(),
+		"received_samples_total",
+		"sent_samples_total",
+		"sent_batch_duration_seconds",
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, ti.expectedMetrics, actualMetrics, "expected "+strconv.Itoa(ti.expectedMetrics)+" to be updated during consume test")
+
 	adapterCancel()
 	wg.Wait()
 }
@@ -261,13 +279,18 @@ func labelGet(labels []prompb.Label, name string) (string, bool) {
 }
 
 func TestIntegrationConsumeDefaultJSON(t *testing.T) {
-	ti := &testConsumeIntegration{}
+	ti := &testConsumeIntegration{
+		app:             getNewTestApp(),
+		expectedMetrics: 3,
+	}
 	ti.test(t)
 }
 
 func TestIntegrationConsumeDefaultJSONWithTenantID(t *testing.T) {
 	ti := &testConsumeIntegration{
-		tenantID: "my-org-id",
+		app:             getNewTestApp(),
+		tenantID:        "my-org-id",
+		expectedMetrics: 3,
 	}
 	ti.test(t)
 }

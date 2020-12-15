@@ -58,7 +58,7 @@ func WithMetrics(m *metrics.Metrics) WriteOpts {
 
 func NewWrite(opts ...WriteOpts) *Write {
 	w := &Write{
-		logger: log.NewNopLogger(),
+		logger:  log.NewNopLogger(),
 		metrics: metrics.NewNopMetrics(),
 
 		samplePerTenantID:   make(map[string][]pulsar.ReceivedSample),
@@ -75,7 +75,6 @@ func NewWrite(opts ...WriteOpts) *Write {
 
 	return w
 }
-
 
 type headerRoundtripper struct {
 	upstream http.RoundTripper

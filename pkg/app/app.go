@@ -11,12 +11,13 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/grafana/prometheus-pulsar-remote-write/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/promlog"
 	promlogflag "github.com/prometheus/common/promlog/flag"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/grafana/prometheus-pulsar-remote-write/pkg/metrics"
 )
 
 type App struct {
@@ -67,18 +68,24 @@ func New() *App {
 	app.Flag("web.max-connection-age", "If set this limits the maximum lifetime of persistent HTTP connections.").
 		Default("0s").DurationVar(&cfg.maxConnectionAge)
 
+	reg := prometheus.NewRegistry()
 	a := &App{
 		app:      app,
 		cfg:      cfg,
-		metrics:  metrics.NewMetrics(prometheus.DefaultRegisterer),
-		registry: prometheus.DefaultRegisterer,
-		gatherer: prometheus.DefaultGatherer,
+		metrics:  metrics.NewMetrics(reg),
+		registry: reg,
+		gatherer: reg,
 	}
 
 	a.cmdProduce = newProduceCommand(a)
 	a.cmdConsume = newConsumeCommand(a)
 
 	return a
+}
+
+// Exposed for testing purposes
+func (a *App) Gatherer() prometheus.Gatherer {
+	return a.gatherer
 }
 
 func (a *App) signalHandler(ctx context.Context) (context.Context, func()) {

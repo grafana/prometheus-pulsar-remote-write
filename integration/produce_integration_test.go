@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -208,7 +207,17 @@ func (ti *testProduceIntegration) test(t *testing.T) {
 	)
 
 	assert.NoError(t, err)
-	assert.Equal(t, ti.expectedMetrics, actualMetrics, "expected "+strconv.Itoa(ti.expectedMetrics)+" metrics to be updated during produce test")
+	assert.Equal(t, ti.expectedMetrics, actualMetrics, fmt.Sprintf("expected %d metrics to be updated during produce test", ti.expectedMetrics))
+
+	problems, err := testutil.GatherAndLint(
+		ti.app.Gatherer(),
+		"received_samples_total",
+		"sent_samples_total",
+		"sent_batch_duration_seconds",
+	)
+
+	assert.NoError(t, err)
+	assert.Empty(t, problems, fmt.Sprintf("unexpected lint problems with metrics: %s", problems))
 
 	err = consumer.Unsubscribe()
 	assert.Nil(t, err)

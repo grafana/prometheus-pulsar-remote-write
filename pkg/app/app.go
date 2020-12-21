@@ -50,7 +50,7 @@ type config struct {
 	maxConnectionAge time.Duration
 }
 
-func New() *App {
+func New(reg *prometheus.Registry) *App {
 	app := kingpin.New(filepath.Base(os.Args[0]), "Pulsar Remote storage adapter for Prometheus")
 	app.HelpFlag.Short('h')
 
@@ -68,13 +68,22 @@ func New() *App {
 	app.Flag("web.max-connection-age", "If set this limits the maximum lifetime of persistent HTTP connections.").
 		Default("0s").DurationVar(&cfg.maxConnectionAge)
 
-	reg := prometheus.NewRegistry()
+	// Use the global Prometheus defaults by default since the include some extras like Go
+	// runtime metrics and the default is what the Pulsar client we use, uses. Integration
+	// tests will override this in order to start with a clean slate.
+	registry := prometheus.DefaultRegisterer
+	gatherer := prometheus.DefaultGatherer
+	if reg != nil {
+		registry = reg
+		gatherer = reg
+	}
+
 	a := &App{
 		app:      app,
 		cfg:      cfg,
-		metrics:  metrics.NewMetrics(reg),
-		registry: reg,
-		gatherer: reg,
+		metrics:  metrics.NewMetrics(registry),
+		registry: registry,
+		gatherer: gatherer,
 	}
 
 	a.cmdProduce = newProduceCommand(a)

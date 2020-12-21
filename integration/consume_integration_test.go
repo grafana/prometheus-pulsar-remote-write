@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -241,7 +240,17 @@ func (ti *testConsumeIntegration) test(t *testing.T) {
 	)
 
 	assert.NoError(t, err)
-	assert.Equal(t, ti.expectedMetrics, actualMetrics, "expected "+strconv.Itoa(ti.expectedMetrics)+" to be updated during consume test")
+	assert.Equal(t, ti.expectedMetrics, actualMetrics, fmt.Sprintf("expected %d to be updated during consume test", ti.expectedMetrics))
+
+	problems, err := testutil.GatherAndLint(
+		ti.app.Gatherer(),
+		"received_samples_total",
+		"sent_samples_total",
+		"sent_batch_duration_seconds",
+	)
+
+	assert.NoError(t, err)
+	assert.Empty(t, problems, fmt.Sprintf("unexpected lint problems with metrics: %s", problems))
 
 	adapterCancel()
 	wg.Wait()

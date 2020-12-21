@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 
 	"github.com/grafana/prometheus-pulsar-remote-write/pkg/app"
@@ -72,7 +73,9 @@ func getRandomFreePort() (int, error) {
 
 // Get a new instance of the application configured for testing
 func getNewTestApp() *app.App {
-	a := app.New()
+	// Fresh registry so we can be sure of the number of metrics registered during a test.
+	// In production use, nil is passed to indicate the global default registry should be used.
+	a := app.New(prometheus.NewRegistry())
 	// lower delay to run tests faster
 	a.WithConsumeBatchMaxDelay(200 * time.Millisecond)
 	return a

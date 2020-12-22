@@ -68,7 +68,7 @@ func New(reg *prometheus.Registry) *App {
 	app.Flag("web.max-connection-age", "If set this limits the maximum lifetime of persistent HTTP connections.").
 		Default("0s").DurationVar(&cfg.maxConnectionAge)
 
-	// Use the global Prometheus defaults by default since the include some extras like Go
+	// Use the global Prometheus defaults by default since they include some extras like Go
 	// runtime metrics and the default is what the Pulsar client we use, uses. Integration
 	// tests will override this in order to start with a clean slate.
 	registry := prometheus.DefaultRegisterer

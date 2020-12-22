@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 
-	mapp "github.com/grafana/prometheus-pulsar-remote-write/pkg/app"
+	"github.com/grafana/prometheus-pulsar-remote-write/pkg/app"
 )
 
 type Clocker interface {
@@ -70,12 +71,17 @@ func getRandomFreePort() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
-var app = mapp.New()
+// Get a new instance of the application configured for testing
+func getNewTestApp() *app.App {
+	// Fresh registry so we can be sure of the number of metrics registered during a test.
+	// In production use, nil is passed to indicate the global default registry should be used.
+	a := app.New(prometheus.NewRegistry())
+	// lower delay to run tests faster
+	a.WithConsumeBatchMaxDelay(200 * time.Millisecond)
+	return a
+}
 
 func TestMain(m *testing.M) {
-	// lower delay to run tests faster
-	app.WithConsumeBatchMaxDelay(200 * time.Millisecond)
-
 	flag.Parse()
 	// reduce verbosity of logrus which is used by the pulsar golang library
 	if !testing.Verbose() {

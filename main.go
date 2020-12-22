@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	a := app.New()
+	a := app.New(nil)
 	err := a.Run(context.Background(), os.Args[1:]...)
 
 	var runErr = &app.RunError{}

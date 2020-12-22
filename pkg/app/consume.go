@@ -126,7 +126,9 @@ func (c *consumeCommand) run(ctx context.Context) error {
 		cancel()
 	}()
 
-	write := remote.NewWrite(remote.WithLogger(c.app.logger))
+	write := remote.NewWrite(
+		remote.WithLogger(c.app.logger),
+		remote.WithMetrics(c.app.metrics))
 
 	// set batch max delay if set
 	if c.batchMaxDelay > 0 {

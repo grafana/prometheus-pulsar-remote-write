@@ -27,7 +27,6 @@ type produceCommand struct {
 
 	writePath     string
 	replicaLabels []string
-	metrics       *metrics
 	sendTimeout   time.Duration
 	pulsar        *pulsarConfig
 }
@@ -105,9 +104,6 @@ func (p *produceCommand) closeWriters(writers []writer) {
 }
 
 func (p *produceCommand) run(ctx context.Context) error {
-	if p.metrics == nil {
-		p.metrics = newMetrics(p.app.registry)
-	}
 	ctx, finish := p.app.signalHandler(ctx)
 	defer finish()
 
@@ -148,7 +144,7 @@ func (p *produceCommand) run(ctx context.Context) error {
 		}
 
 		samples := protoToSamples(&req)
-		p.metrics.receivedSamples.Add(float64(len(samples)))
+		p.app.metrics.ReceivedSamples.WithLabelValues(mcontext.TenantIDFromContext(ctx)).Add(float64(len(samples)))
 
 		// error if no writer is configured
 		if len(writers) == 0 {
@@ -211,11 +207,12 @@ func (p *produceCommand) sendSamples(w writer, ctx context.Context, samples mode
 	begin := time.Now()
 	err := w.Write(ctx, samples)
 	duration := time.Since(begin).Seconds()
-	p.metrics.sentSamples.WithLabelValues(w.Name()).Add(float64(len(samples)))
-	p.metrics.sentBatchDuration.WithLabelValues(w.Name()).Observe(duration)
+	tenantId := mcontext.TenantIDFromContext(ctx)
+	p.app.metrics.SentSamples.WithLabelValues(w.Name(), tenantId).Add(float64(len(samples)))
+	p.app.metrics.SentBatchDuration.WithLabelValues(w.Name(), tenantId).Observe(duration)
 	if err != nil {
 		_ = level.Warn(p.app.logger).Log("msg", errSendingSamples, "err", err, "storage", w.Name(), "num_samples", len(samples))
-		p.metrics.failedSamples.WithLabelValues(w.Name()).Add(float64(len(samples)))
+		p.app.metrics.FailedSamples.WithLabelValues(w.Name(), tenantId).Add(float64(len(samples)))
 		return err
 	}
 	return nil

@@ -14,11 +14,14 @@ import (
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	promconfig "github.com/prometheus/common/config"
 	prommodel "github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/prometheus/prometheus/storage/remote"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/grafana/prometheus-pulsar-remote-write/pkg/app"
 )
 
 func runBatch(writeClient remote.WriteClient, from, to int) error {
@@ -61,8 +64,10 @@ func runBatch(writeClient remote.WriteClient, from, to int) error {
 }
 
 type testProduceIntegration struct {
+	app                   *app.App
 	remoteWriteConfigHook func(*remote.ClientConfig)
 	consumeMessage        func(pulsar.Message)
+	expectedMetrics       int
 }
 
 func isReady(ctx context.Context, url string) error {
@@ -117,7 +122,7 @@ func (ti *testProduceIntegration) test(t *testing.T) {
 
 	go func() {
 		t.Logf("run adapter with args=%v", args)
-		err := app.Run(adapterCtx, args...)
+		err := ti.app.Run(adapterCtx, args...)
 		assert.Nil(t, err)
 	}()
 
@@ -191,17 +196,44 @@ func (ti *testProduceIntegration) test(t *testing.T) {
 		consumer.Ack(msg)
 	}
 
+	// Check the number of metrics incremented during this test (for produce mode, we expect
+	// three metrics with a single value for each label: two counts and the timing histogram since
+	// there shouldn't be any errors).
+	actualMetrics, err := testutil.GatherAndCount(
+		ti.app.Gatherer(),
+		"received_samples_total",
+		"sent_samples_total",
+		"sent_batch_duration_seconds",
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, ti.expectedMetrics, actualMetrics, fmt.Sprintf("expected %d metrics to be updated during produce test", ti.expectedMetrics))
+
+	problems, err := testutil.GatherAndLint(
+		ti.app.Gatherer(),
+		"received_samples_total",
+		"sent_samples_total",
+		"sent_batch_duration_seconds",
+	)
+
+	assert.NoError(t, err)
+	assert.Empty(t, problems, fmt.Sprintf("unexpected lint problems with metrics: %s", problems))
+
 	err = consumer.Unsubscribe()
 	assert.Nil(t, err)
 }
 
 func TestIntegrationProduceDefaultJSON(t *testing.T) {
-	ti := &testProduceIntegration{}
+	ti := &testProduceIntegration{
+		app:             getNewTestApp(),
+		expectedMetrics: 3,
+	}
 	ti.test(t)
 }
 
 func TestIntegrationProduceBasicAuthTenantIDJSON(t *testing.T) {
 	ti := &testProduceIntegration{
+		app: getNewTestApp(),
 		remoteWriteConfigHook: func(c *remote.ClientConfig) {
 			c.HTTPClientConfig.BasicAuth = &promconfig.BasicAuth{
 				Username: "my-org-id",
@@ -216,6 +248,7 @@ func TestIntegrationProduceBasicAuthTenantIDJSON(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, "my-org-id", data.TenantID)
 		},
+		expectedMetrics: 3,
 	}
 	ti.test(t)
 }

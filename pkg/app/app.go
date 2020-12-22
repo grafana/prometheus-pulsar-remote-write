@@ -16,6 +16,8 @@ import (
 	promlogflag "github.com/prometheus/common/promlog/flag"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/grafana/prometheus-pulsar-remote-write/pkg/metrics"
 )
 
 type App struct {
@@ -23,6 +25,7 @@ type App struct {
 	logger log.Logger
 	cfg    *config
 
+	metrics  *metrics.Metrics
 	registry prometheus.Registerer
 	gatherer prometheus.Gatherer
 
@@ -47,7 +50,7 @@ type config struct {
 	maxConnectionAge time.Duration
 }
 
-func New() *App {
+func New(reg *prometheus.Registry) *App {
 	app := kingpin.New(filepath.Base(os.Args[0]), "Pulsar Remote storage adapter for Prometheus")
 	app.HelpFlag.Short('h')
 
@@ -65,17 +68,33 @@ func New() *App {
 	app.Flag("web.max-connection-age", "If set this limits the maximum lifetime of persistent HTTP connections.").
 		Default("0s").DurationVar(&cfg.maxConnectionAge)
 
+	// Use the global Prometheus defaults by default since they include some extras like Go
+	// runtime metrics and the default is what the Pulsar client we use, uses. Integration
+	// tests will override this in order to start with a clean slate.
+	registry := prometheus.DefaultRegisterer
+	gatherer := prometheus.DefaultGatherer
+	if reg != nil {
+		registry = reg
+		gatherer = reg
+	}
+
 	a := &App{
 		app:      app,
 		cfg:      cfg,
-		registry: prometheus.DefaultRegisterer,
-		gatherer: prometheus.DefaultGatherer,
+		metrics:  metrics.NewMetrics(registry),
+		registry: registry,
+		gatherer: gatherer,
 	}
 
 	a.cmdProduce = newProduceCommand(a)
 	a.cmdConsume = newConsumeCommand(a)
 
 	return a
+}
+
+// Exposed for testing purposes
+func (a *App) Gatherer() prometheus.Gatherer {
+	return a.gatherer
 }
 
 func (a *App) signalHandler(ctx context.Context) (context.Context, func()) {

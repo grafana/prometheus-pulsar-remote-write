@@ -1,8 +1,9 @@
 # Changelog
 
-## master
+## 0.2.0 / 2020-12-23
 
 * [FEATURE] Add consume mode, which consumes metrics on the pulsar bus and send them as remote_write requests. #34
+* [FEATURE] Add metrics for consume mode mentioned above. #36
 
 ## 0.1.2 / 2020-09-11
 

@@ -10,14 +10,27 @@ local make(target) = {
   ],
 };
 
+local secret(name, vault_path, vault_key) = {
+  kind: 'secret',
+  name: name,
+  get: {
+    path: vault_path,
+    name: vault_key,
+  },
+};
+local docker_username_secret = secret('docker_username', 'infra/data/ci/docker_hub', 'username');
+local docker_password_secret = secret('docker_password', 'infra/data/ci/docker_hub', 'password');
+local github_secret = secret('github_token', 'infra/data/ci/github/grafanabot', 'pat');
+
+
 // docker can be used to build docker images.
 local docker(repo) = {
   name: 'docker %s' % repo,
   image: 'plugins/docker',
   settings: {
     repo: repo,
-    password: { from_secret: 'docker_password' },
-    username: { from_secret: 'docker_username' },
+    password: { from_secret: docker_password_secret.name },
+    username: { from_secret: docker_username_secret.name },
     tags: ['latest', '${DRONE_COMMIT_SHA:0:8}'],
   },
 };
@@ -88,7 +101,7 @@ local pipeline(name) = {
         image: 'plugins/github-release',
         settings: {
           title: '${DRONE_TAG}',
-          api_key: { from_secret: 'github_token' },
+          api_key: { from_secret: github_secret.name },
           files: ['dist/*'],
         },
       },
@@ -114,3 +127,4 @@ local pipeline(name) = {
     },
   },
 ]
++ [docker_username_secret, docker_password_secret, github_secret]

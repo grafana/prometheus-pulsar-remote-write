@@ -155,4 +155,28 @@ trigger:
 depends_on:
 - prelude
 
+---
+kind: secret
+name: docker_username
+
+get:
+  path: infra/data/ci/docker_hub
+  name: username
+
+---
+kind: secret
+name: docker_password
+
+get:
+  path: infra/data/ci/docker_hub
+  name: password
+
+---
+kind: secret
+name: github_token
+
+get:
+  path: infra/data/ci/github/grafanabot
+  name: pat
+
 ...

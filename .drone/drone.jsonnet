@@ -44,14 +44,6 @@ local pipeline(name) = {
 
 
 [
-  pipeline('prelude') {
-    steps: [
-      make('-B .drone/drone.yml') {
-        commands+: ['git diff --exit-code'],
-      },
-    ],
-  },
-
   pipeline('check') {
     depends_on: ['prelude'],
     steps: [

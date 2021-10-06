@@ -42,9 +42,14 @@ update-readme: ## Update the README.md is update to date
 image: ## Build docker image
 	docker build -t grafana/prometheus-pulsar-remote-write .
 
-.drone/drone.yml: .drone/drone.jsonnet Makefile ## Update the CI configuration file
-	drone jsonnet --target $@ --format --stream --source $<\
-		--extVar BUILD_IMAGE=$(BUILD_IMAGE):c1b1dc1
+.drone/drone.yml: .drone/drone.jsonnet
+	# Drones jsonnet formatting causes issues where arrays disappear
+	drone jsonnet --source $< --target $@.tmp --stream --format=false \
+	  --extVar BUILD_IMAGE=$(BUILD_IMAGE):c1b1dc1
+	drone sign --save grafana/prometheus-pulsar-remote-write $@.tmp
+	drone lint --trusted $@.tmp
+	# When all passes move to correct destination
+	mv $@.tmp $@
 
 BIN_SUFFIXES := linux-amd64 linux-arm64 darwin-amd64 windows-amd64.exe
 BINARIES     := $(patsubst %, dist/prometheus-pulsar-remote-write-%, $(BIN_SUFFIXES))

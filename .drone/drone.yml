@@ -1,5 +1,19 @@
 ---
 {
+   "kind": "pipeline",
+   "name": "prelude",
+   "steps": [
+      {
+         "commands": [
+            "make verify-drone"
+         ],
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "name": "make verify-drone"
+      }
+   ]
+}
+---
+{
    "depends_on": [
       "prelude"
    ],
@@ -197,6 +211,6 @@
 }
 ---
 kind: signature
-hmac: 0492012ccf045f548746e721bd1bd58900e0d95e5c97e36def8f0f422d161a3f
+hmac: dd6884606d422cf43a9b9602a8705b7cdfd89b3130b02bd466934acbbd7cf559
 
 ...

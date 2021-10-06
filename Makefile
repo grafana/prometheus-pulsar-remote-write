@@ -5,6 +5,8 @@ BUILD_IMAGE := grafana/prometheus-pulsar-remote-write-build-image
 
 README_COMMAND := go build && { ./prometheus-pulsar-remote-write help && ./prometheus-pulsar-remote-write help produce && ./prometheus-pulsar-remote-write help consume ; } 2>&1
 
+DRONE_COMMAND := drone jsonnet --source .drone/drone.jsonnet --target /dev/stdout --stream --format=false --extVar BUILD_IMAGE=$(BUILD_IMAGE):c1b1dc1
+
 # from https://suva.sh/posts/well-documented-makefiles/
 .PHONY: help
 help:  ## Display this help
@@ -31,12 +33,22 @@ lint: ## Lint
 	golangci-lint run ./...
 
 .PHONY: verify-readme
-verify-readme: ## Ensure the README.md is update to date
-	$(README_COMMAND) | go run hack/update-readme.go
+verify-readme: ## Ensure the README.md is up-to-date
+	$(README_COMMAND) | go run ./hack/update-readme/
 
 .PHONY: update-readme
-update-readme: ## Update the README.md is update to date
-	$(README_COMMAND) | go run hack/update-readme.go --update
+update-readme: ## Update the README.md
+	$(README_COMMAND) | go run ./hack/update-readme/ --update
+
+.PHONY: verify-drone
+verify-drone: ## Ensure the drone.yml is up-to-date
+	$(DRONE_COMMAND) | go run ./hack/update-drone/
+	drone lint --trusted .drone/drone.yml
+
+.PHONY: update-drone
+update-drone: ## Update the drone.yml
+	$(DRONE_COMMAND) | go run ./hack/update-drone/ --update --repo grafana/prometheus-pulsar-remote-write
+	drone lint --trusted .drone/drone.yml
 
 .PHONY: image
 image: ## Build docker image
@@ -44,8 +56,7 @@ image: ## Build docker image
 
 .drone/drone.yml: .drone/drone.jsonnet
 	# Drones jsonnet formatting causes issues where arrays disappear
-	drone jsonnet --source $< --target $@.tmp --stream --format=false \
-	  --extVar BUILD_IMAGE=$(BUILD_IMAGE):c1b1dc1
+	drone jsonnet --source $< --target --stream --format=false --extVar BUILD_IMAGE=$(BUILD_IMAGE):c1b1dc1
 	drone sign --save grafana/prometheus-pulsar-remote-write $@.tmp
 	drone lint --trusted $@.tmp
 	# When all passes move to correct destination

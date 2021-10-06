@@ -44,7 +44,14 @@ local pipeline(name) = {
 
 
 [
+  pipeline('prelude') {
+    steps: [
+      make('verify-drone'),
+    ],
+  },
+
   pipeline('check') {
+    depends_on: ['prelude'],
     steps: [
       make('lint'),
       make('test'),
@@ -57,6 +64,7 @@ local pipeline(name) = {
   pipeline('integration') {
     local pulsar_host = 'pulsar',
     local pulsar_image = 'apachepulsar/pulsar-standalone:2.6.0',
+    depends_on: ['prelude'],
     steps: [
       {
         name: 'wait for pulsar being ready',
@@ -103,6 +111,7 @@ local pipeline(name) = {
   },
 
   pipeline('build-image') {
+    depends_on: ['prelude'],
     steps: [
       docker('grafana/prometheus-pulsar-remote-write-build-image') {
         settings+: {

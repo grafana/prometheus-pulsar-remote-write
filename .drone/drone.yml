@@ -1,182 +1,216 @@
 ---
-kind: pipeline
-name: prelude
-
-platform:
-  os: linux
-  arch: amd64
-
-steps:
-- name: make -B .drone/drone.yml
-  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
-  commands:
-  - make -B .drone/drone.yml
-  - git diff --exit-code
-
+{
+   "kind": "pipeline",
+   "name": "prelude",
+   "steps": [
+      {
+         "commands": [
+            "make verify-drone"
+         ],
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "name": "make verify-drone"
+      }
+   ]
+}
 ---
-kind: pipeline
-name: check
-
-platform:
-  os: linux
-  arch: amd64
-
-steps:
-- name: make lint
-  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
-  commands:
-  - make lint
-
-- name: make test
-  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
-  commands:
-  - make test
-
-- name: make bench
-  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
-  commands:
-  - make bench
-
-- name: make binaries
-  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
-  commands:
-  - make binaries
-
-- name: make verify-readme
-  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
-  commands:
-  - make verify-readme
-
-depends_on:
-- prelude
-
+{
+   "depends_on": [
+      "prelude"
+   ],
+   "kind": "pipeline",
+   "name": "check",
+   "steps": [
+      {
+         "commands": [
+            "make lint"
+         ],
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "name": "make lint"
+      },
+      {
+         "commands": [
+            "make test"
+         ],
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "name": "make test"
+      },
+      {
+         "commands": [
+            "make bench"
+         ],
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "name": "make bench"
+      },
+      {
+         "commands": [
+            "make binaries"
+         ],
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "name": "make binaries"
+      },
+      {
+         "commands": [
+            "make verify-readme"
+         ],
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "name": "make verify-readme"
+      }
+   ]
+}
 ---
-kind: pipeline
-name: integration
-
-platform:
-  os: linux
-  arch: amd64
-
-steps:
-- name: wait for pulsar being ready
-  image: apachepulsar/pulsar-standalone:2.6.0
-  commands:
-  - timeout 300 bash -c 'check_pulsar() { /pulsar/bin/pulsar-admin --admin-url http://pulsar:8080 "$@"; }; while ! check_pulsar brokers healthcheck || ! check_pulsar topics list public/default ; do sleep 5; done' || false
-
-- name: make integration TEST_PULSAR_URL=pulsar://pulsar:6650
-  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
-  commands:
-  - make integration TEST_PULSAR_URL=pulsar://pulsar:6650
-
-services:
-- name: pulsar
-  image: apachepulsar/pulsar-standalone:2.6.0
-
-depends_on:
-- prelude
-
+{
+   "depends_on": [
+      "prelude"
+   ],
+   "kind": "pipeline",
+   "name": "integration",
+   "services": [
+      {
+         "image": "apachepulsar/pulsar-standalone:2.6.0",
+         "name": "pulsar"
+      }
+   ],
+   "steps": [
+      {
+         "commands": [
+            "timeout 300 bash -c 'check_pulsar() { /pulsar/bin/pulsar-admin --admin-url http://pulsar:8080 \"$@\"; }; while ! check_pulsar brokers healthcheck || ! check_pulsar topics list public/default ; do sleep 5; done' || false"
+         ],
+         "image": "apachepulsar/pulsar-standalone:2.6.0",
+         "name": "wait for pulsar being ready"
+      },
+      {
+         "commands": [
+            "make integration TEST_PULSAR_URL=pulsar://pulsar:6650"
+         ],
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "name": "make integration TEST_PULSAR_URL=pulsar://pulsar:6650"
+      }
+   ]
+}
 ---
-kind: pipeline
-name: release
-
-platform:
-  os: linux
-  arch: amd64
-
-steps:
-- name: make binaries
-  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
-  commands:
-  - make binaries
-
-- name: make shas
-  image: grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1
-  commands:
-  - make shas
-
-- name: docker grafana/prometheus-pulsar-remote-write
-  image: plugins/docker
-  settings:
-    password:
-      from_secret: docker_password
-    repo: grafana/prometheus-pulsar-remote-write
-    tags:
-    - latest
-    - ${DRONE_COMMIT_SHA:0:8}
-    - ${DRONE_TAG}
-    username:
-      from_secret: docker_username
-
-- name: github-release
-  image: plugins/github-release
-  settings:
-    api_key:
-      from_secret: github_token
-    files:
-    - dist/*
-    title: ${DRONE_TAG}
-
-trigger:
-  ref:
-  - refs/tags/v*
-
-depends_on:
-- check
-- integration
-
+{
+   "depends_on": [
+      "check",
+      "integration"
+   ],
+   "kind": "pipeline",
+   "name": "release",
+   "steps": [
+      {
+         "commands": [
+            "make binaries"
+         ],
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "name": "make binaries"
+      },
+      {
+         "commands": [
+            "make shas"
+         ],
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "name": "make shas"
+      },
+      {
+         "image": "plugins/docker",
+         "name": "docker grafana/prometheus-pulsar-remote-write",
+         "settings": {
+            "password": {
+               "from_secret": "docker_password"
+            },
+            "repo": "grafana/prometheus-pulsar-remote-write",
+            "tags": [
+               "latest",
+               "${DRONE_COMMIT_SHA:0:8}",
+               "${DRONE_TAG}"
+            ],
+            "username": {
+               "from_secret": "docker_username"
+            }
+         }
+      },
+      {
+         "image": "plugins/github-release",
+         "name": "github-release",
+         "settings": {
+            "api_key": {
+               "from_secret": "github_token"
+            },
+            "files": [
+               "dist/*"
+            ],
+            "title": "${DRONE_TAG}"
+         }
+      }
+   ],
+   "trigger": {
+      "ref": [
+         "refs/tags/v*"
+      ]
+   }
+}
 ---
-kind: pipeline
-name: build-image
-
-platform:
-  os: linux
-  arch: amd64
-
-steps:
-- name: docker grafana/prometheus-pulsar-remote-write-build-image
-  image: plugins/docker
-  settings:
-    dockerfile: build-image/Dockerfile
-    password:
-      from_secret: docker_password
-    repo: grafana/prometheus-pulsar-remote-write-build-image
-    tags:
-    - latest
-    - ${DRONE_COMMIT_SHA:0:8}
-    - ${DRONE_BRANCH}
-    username:
-      from_secret: docker_username
-
-trigger:
-  ref:
-  - refs/heads/master
-
-depends_on:
-- prelude
-
+{
+   "depends_on": [
+      "prelude"
+   ],
+   "kind": "pipeline",
+   "name": "build-image",
+   "steps": [
+      {
+         "image": "plugins/docker",
+         "name": "docker grafana/prometheus-pulsar-remote-write-build-image",
+         "settings": {
+            "dockerfile": "build-image/Dockerfile",
+            "password": {
+               "from_secret": "docker_password"
+            },
+            "repo": "grafana/prometheus-pulsar-remote-write-build-image",
+            "tags": [
+               "latest",
+               "${DRONE_COMMIT_SHA:0:8}",
+               "${DRONE_BRANCH}"
+            ],
+            "username": {
+               "from_secret": "docker_username"
+            }
+         }
+      }
+   ],
+   "trigger": {
+      "ref": [
+         "refs/heads/master"
+      ]
+   }
+}
 ---
-kind: secret
-name: docker_username
-
-get:
-  path: infra/data/ci/docker_hub
-  name: username
-
+{
+   "get": {
+      "name": "username",
+      "path": "infra/data/ci/docker_hub"
+   },
+   "kind": "secret",
+   "name": "docker_username"
+}
 ---
-kind: secret
-name: docker_password
-
-get:
-  path: infra/data/ci/docker_hub
-  name: password
-
+{
+   "get": {
+      "name": "password",
+      "path": "infra/data/ci/docker_hub"
+   },
+   "kind": "secret",
+   "name": "docker_password"
+}
 ---
-kind: secret
-name: github_token
-
-get:
-  path: infra/data/ci/github/grafanabot
-  name: pat
+{
+   "get": {
+      "name": "pat",
+      "path": "infra/data/ci/github/grafanabot"
+   },
+   "kind": "secret",
+   "name": "github_token"
+}
+---
+kind: signature
+hmac: dd6884606d422cf43a9b9602a8705b7cdfd89b3130b02bd466934acbbd7cf559
 
 ...

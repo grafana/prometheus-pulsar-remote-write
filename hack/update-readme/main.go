@@ -6,9 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/hexops/gotextdiff"
+	"github.com/hexops/gotextdiff/myers"
+	"github.com/hexops/gotextdiff/span"
 )
 
 func run(readmePath string, update bool) error {
@@ -30,17 +33,22 @@ func run(readmePath string, update bool) error {
 
 	newData := r.ReplaceAll(data, stdin)
 
-	if update {
-		if err := ioutil.WriteFile(readmePath, newData, 0644); err != nil {
-			return fmt.Errorf("error writing readme file: %w", err)
-		}
+	edits := myers.ComputeEdits(span.URIFromPath("before"), string(data), string(newData))
+
+	// nothing to do file matches
+	if len(edits) == 0 {
 		return nil
 	}
 
-	if !reflect.DeepEqual(newData, data) {
+	// if we don't want to update, show diffs
+	if !update {
+		fmt.Println(gotextdiff.ToUnified("before", "after", string(data), edits))
 		return fmt.Errorf("The file %s needs updates, please run with '--update'", readmePath)
 	}
 
+	if err := ioutil.WriteFile(readmePath, newData, 0644); err != nil {
+		return fmt.Errorf("error writing readme file: %w", err)
+	}
 	return nil
 }
 

@@ -15,7 +15,7 @@ import (
 	"github.com/hexops/gotextdiff/span"
 )
 
-func run(readmePath string, repo string, update bool) error {
+func run(droneYMLPath string, repo string, update bool) error {
 
 	stdin, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
@@ -41,8 +41,8 @@ func run(readmePath string, repo string, update bool) error {
 
 	// if we don't want to update, show diffs
 	if !update {
-		fmt.Println(gotextdiff.ToUnified("a.txt", "b.txt", string(existing), edits))
-		return fmt.Errorf("The file %s needs updates, please run with '--update'", readmePath)
+		fmt.Println(gotextdiff.ToUnified("before", "after", string(existing), edits))
+		return fmt.Errorf("The file %s needs updates, please run with '--update'", droneYMLPath)
 	}
 
 	// sign if repo is set

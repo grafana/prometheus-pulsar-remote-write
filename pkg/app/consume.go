@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log/level"
 	config_util "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 

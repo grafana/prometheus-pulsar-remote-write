@@ -4,10 +4,10 @@ go 1.14
 
 require (
 	github.com/apache/pulsar-client-go v0.2.0
-	github.com/go-kit/kit v0.10.0
+	github.com/go-kit/log v0.2.1
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/snappy v0.0.2
-	github.com/hexops/gotextdiff v1.0.3 // indirect
+	github.com/hexops/gotextdiff v1.0.3
 	github.com/linkedin/goavro v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/common v0.14.0

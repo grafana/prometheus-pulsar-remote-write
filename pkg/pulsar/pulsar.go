@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/apache/pulsar-client-go/pulsar"
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/common/model"
 
 	mcontext "github.com/grafana/prometheus-pulsar-remote-write/pkg/context"

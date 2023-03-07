@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -144,7 +145,7 @@ func (cfg *pulsarConfig) client(logger log.Logger, opts ...pulsarClientOpts) (*p
 		opt(&config)
 	}
 
-	if config.ClientOptions == (pulsar.ClientOptions{}) {
+	if reflect.ValueOf(config).IsZero() {
 		clientOptions, err := cfg.clientOptions()
 		if err != nil {
 			return nil, err

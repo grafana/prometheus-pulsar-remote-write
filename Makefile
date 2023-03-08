@@ -5,7 +5,7 @@ BUILD_IMAGE := grafana/prometheus-pulsar-remote-write-build-image
 
 README_COMMAND := go build && { ./prometheus-pulsar-remote-write help && ./prometheus-pulsar-remote-write help produce && ./prometheus-pulsar-remote-write help consume ; } 2>&1
 
-DRONE_COMMAND := drone jsonnet --source .drone/drone.jsonnet --target /dev/stdout --stream --format=false --extVar BUILD_IMAGE=$(BUILD_IMAGE):c1b1dc1
+DRONE_COMMAND := drone jsonnet --source .drone/drone.jsonnet --target /dev/stdout --stream --format=false --extVar BUILD_IMAGE=$(BUILD_IMAGE):6a3a995d
 
 # from https://suva.sh/posts/well-documented-makefiles/
 .PHONY: help
@@ -56,7 +56,7 @@ image: ## Build docker image
 
 .drone/drone.yml: .drone/drone.jsonnet
 	# Drones jsonnet formatting causes issues where arrays disappear
-	drone jsonnet --source $< --target --stream --format=false --extVar BUILD_IMAGE=$(BUILD_IMAGE):c1b1dc1
+	drone jsonnet --source $< --target --stream --format=false --extVar BUILD_IMAGE=$(BUILD_IMAGE):6a3a995d
 	drone sign --save grafana/prometheus-pulsar-remote-write $@.tmp
 	drone lint --trusted $@.tmp
 	# When all passes move to correct destination

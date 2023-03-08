@@ -71,8 +71,8 @@ Flags:
                                  persistent HTTP connections.
       --pulsar.url=""            The URL of the remote Pulsar server to send
                                  samples to. Example: pulsar://pulsar-proxy:6650
-                                 or pulsar+ssl://pulsar-proxy:6651. None, if
-                                 empty.
+                                 or pulsar+ssl://pulsar-proxy:6651. None,
+                                 if empty.
       --pulsar.connection-timeout=30s  
                                  The timeout to use when connection to the
                                  remote Pulsar server.
@@ -82,72 +82,68 @@ Flags:
                                  json: JSON default format as defined by
                                  github.com/prometheus/common/model
                                  
-                                 {
+                                   {
+                                     "metric": {
+                                       "__name__": "foo",
+                                       "labelfoo": "label-bar"
+                                     },
+                                     "value": [
+                                       0,
+                                       "456"
+                                     ]
+                                   }
                                  
-                                   "metric": {
-                                     "__name__": "foo",
-                                     "labelfoo": "label-bar"
-                                   },
-                                   "value": [
-                                     0,
-                                     "456"
-                                   ]
-                                 
-                                 }
-                                 
-                                 json-compat: JSON compat provides compatability
-                                 with
+                                 json-compat: JSON compat
+                                 provides compatability with
                                  github.com/liangyuanpeng/prometheus-pulsar-adapter
                                  
-                                 {
-                                 
-                                   "name": "foo",
-                                   "labels": {
-                                     "__name__": "foo",
-                                     "labelfoo": "label-bar"
-                                   },
-                                   "value": "456",
-                                   "timestamp": "1970-01-01T00:00:00Z"
-                                 
-                                 }
+                                   {
+                                     "name": "foo",
+                                     "labels": {
+                                       "__name__": "foo",
+                                       "labelfoo": "label-bar"
+                                     },
+                                     "value": "456",
+                                     "timestamp": "1970-01-01T00:00:00Z"
+                                   }
                                  
                                  avro-json-compat[=<path to schema>]: AVRO-JSON
                                  which can optionally read a custom schema
                                  
-                                 Default schema: {
+                                 Default schema:
                                  
-                                   "namespace": "io.prometheus",
-                                   "type": "record",
-                                   "name": "Metric",
-                                   "doc:": "A basic schema for representing Prometheus metrics",
-                                   "fields": [
-                                     {
-                                       "name": "timestamp",
-                                       "type": "string"
-                                     },
-                                     {
-                                       "name": "value",
-                                       "type": "string"
-                                     },
-                                     {
-                                       "name": "name",
-                                       "type": "string"
-                                     },
-                                     {
-                                       "name": "labels",
-                                       "type": {
-                                         "type": "map",
-                                         "values": "string"
+                                   {
+                                     "namespace": "io.prometheus",
+                                     "type": "record",
+                                     "name": "Metric",
+                                     "doc:": "A basic schema for representing Prometheus metrics",
+                                     "fields": [
+                                       {
+                                         "name": "timestamp",
+                                         "type": "string"
+                                       },
+                                       {
+                                         "name": "value",
+                                         "type": "string"
+                                       },
+                                       {
+                                         "name": "name",
+                                         "type": "string"
+                                       },
+                                       {
+                                         "name": "labels",
+                                         "type": {
+                                           "type": "map",
+                                           "values": "string"
+                                         }
+                                       },
+                                       {
+                                         "name": "tenant_id",
+                                         "type": "string",
+                                         "default": ""
                                        }
-                                     },
-                                     {
-                                       "name": "tenant_id",
-                                       "type": "string",
-                                       "default": ""
-                                     }
-                                   ]
-                                 
-                                 }
+                                     ]
+                                   }
       --pulsar.topic="metrics"   The Pulsar topic to use for publishing or
                                  subscribing to metrics on.
       --pulsar.certificate-authority=""  
@@ -163,8 +159,8 @@ Flags:
                                  Configure whether the Pulsar client accepts
                                  untrusted TLS certificate from broker.
       --pulsar.insecure-skip-tls-validate-hostname  
-                                 Configure whether the Pulsar client skips to
-                                 verify the validity of the host name from
+                                 Configure whether the Pulsar client skips
+                                 to verify the validity of the host name from
                                  broker.
       --pulsar.max-connections-per-broker=1  
                                  Max number of connections to a single broker
@@ -199,8 +195,8 @@ Flags:
                                 persistent HTTP connections.
       --pulsar.url=""           The URL of the remote Pulsar server to send
                                 samples to. Example: pulsar://pulsar-proxy:6650
-                                or pulsar+ssl://pulsar-proxy:6651. None, if
-                                empty.
+                                or pulsar+ssl://pulsar-proxy:6651. None,
+                                if empty.
       --pulsar.connection-timeout=30s  
                                 The timeout to use when connection to the remote
                                 Pulsar server.
@@ -210,72 +206,68 @@ Flags:
                                 json: JSON default format as defined by
                                 github.com/prometheus/common/model
                                 
-                                {
+                                  {
+                                    "metric": {
+                                      "__name__": "foo",
+                                      "labelfoo": "label-bar"
+                                    },
+                                    "value": [
+                                      0,
+                                      "456"
+                                    ]
+                                  }
                                 
-                                  "metric": {
-                                    "__name__": "foo",
-                                    "labelfoo": "label-bar"
-                                  },
-                                  "value": [
-                                    0,
-                                    "456"
-                                  ]
-                                
-                                }
-                                
-                                json-compat: JSON compat provides compatability
-                                with
+                                json-compat: JSON compat
+                                provides compatability with
                                 github.com/liangyuanpeng/prometheus-pulsar-adapter
                                 
-                                {
-                                
-                                  "name": "foo",
-                                  "labels": {
-                                    "__name__": "foo",
-                                    "labelfoo": "label-bar"
-                                  },
-                                  "value": "456",
-                                  "timestamp": "1970-01-01T00:00:00Z"
-                                
-                                }
+                                  {
+                                    "name": "foo",
+                                    "labels": {
+                                      "__name__": "foo",
+                                      "labelfoo": "label-bar"
+                                    },
+                                    "value": "456",
+                                    "timestamp": "1970-01-01T00:00:00Z"
+                                  }
                                 
                                 avro-json-compat[=<path to schema>]: AVRO-JSON
                                 which can optionally read a custom schema
                                 
-                                Default schema: {
+                                Default schema:
                                 
-                                  "namespace": "io.prometheus",
-                                  "type": "record",
-                                  "name": "Metric",
-                                  "doc:": "A basic schema for representing Prometheus metrics",
-                                  "fields": [
-                                    {
-                                      "name": "timestamp",
-                                      "type": "string"
-                                    },
-                                    {
-                                      "name": "value",
-                                      "type": "string"
-                                    },
-                                    {
-                                      "name": "name",
-                                      "type": "string"
-                                    },
-                                    {
-                                      "name": "labels",
-                                      "type": {
-                                        "type": "map",
-                                        "values": "string"
+                                  {
+                                    "namespace": "io.prometheus",
+                                    "type": "record",
+                                    "name": "Metric",
+                                    "doc:": "A basic schema for representing Prometheus metrics",
+                                    "fields": [
+                                      {
+                                        "name": "timestamp",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "name": "value",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "name": "name",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "name": "labels",
+                                        "type": {
+                                          "type": "map",
+                                          "values": "string"
+                                        }
+                                      },
+                                      {
+                                        "name": "tenant_id",
+                                        "type": "string",
+                                        "default": ""
                                       }
-                                    },
-                                    {
-                                      "name": "tenant_id",
-                                      "type": "string",
-                                      "default": ""
-                                    }
-                                  ]
-                                
-                                }
+                                    ]
+                                  }
       --pulsar.topic="metrics"  The Pulsar topic to use for publishing or
                                 subscribing to metrics on.
       --pulsar.certificate-authority=""  
@@ -291,8 +283,8 @@ Flags:
                                 Configure whether the Pulsar client accepts
                                 untrusted TLS certificate from broker.
       --pulsar.insecure-skip-tls-validate-hostname  
-                                Configure whether the Pulsar client skips to
-                                verify the validity of the host name from
+                                Configure whether the Pulsar client skips
+                                to verify the validity of the host name from
                                 broker.
       --pulsar.max-connections-per-broker=1  
                                 Max number of connections to a single broker

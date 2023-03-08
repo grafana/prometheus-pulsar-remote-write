@@ -17,7 +17,7 @@ RUN install -t /usr/local/bin golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64
 
 FROM golang:1.20.2-bullseye as gox-builder
 ARG GOX_VERSION=1.0.1
-ARG GOX_CHECKSUM=5d67f92ba3ffdca29bcb1f381b21c9b8c4309c6b6223dab493aed4d2f34a8fa8
+ARG GOX_CHECKSUM=b2ad2e4dd784a9a15d39d01b6259b3f8ac5059d35f2db64531d3738deb93abe9
 RUN curl -L https://github.com/mitchellh/gox/archive/v${GOX_VERSION}.tar.gz | tar zx
 RUN cd gox-"${GOX_VERSION}" && go build
 RUN echo "${GOX_CHECKSUM} gox-${GOX_VERSION}/gox" | sha256sum -c - || (printf "wanted: %s\n   got: %s\n" "${GOX_CHECKSUM}" "$(sha256sum gox-${GOX_VERSION}/gox)"; exit 1)

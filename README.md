@@ -22,30 +22,32 @@ usage: prometheus-pulsar-remote-write [<flags>] <command> [<args> ...]
 
 Pulsar Remote storage adapter for Prometheus
 
+
 Flags:
-  -h, --help               Show context-sensitive help (also try --help-long and
-                           --help-man).
-      --log.level=info     Only log messages with the given severity or above.
-                           One of: [debug, info, warn, error]
-      --log.format=logfmt  Output format of log messages. One of: [logfmt, json]
+  -h, --[no-]help               Show context-sensitive help (also try
+                                --help-long and --help-man).
+      --log.level=info          Only log messages with the given severity or
+                                above. One of: [debug, info, warn, error]
+      --log.format=logfmt       Output format of log messages. One of: [logfmt,
+                                json]
       --web.listen-address=":9201"  
-                           Address to listen on for web endpoints.
+                                Address to listen on for web endpoints.
       --web.telemetry-path="/metrics"  
-                           Path under which to expose metrics.
-      --web.disable-pprof  Disable the pprof tracing/debugging endpoints under
-                           /debug/pprof.
+                                Path under which to expose metrics.
+      --[no-]web.disable-pprof  Disable the pprof tracing/debugging endpoints
+                                under /debug/pprof.
       --web.max-connection-age=0s  
-                           If set this limits the maximum lifetime of persistent
-                           HTTP connections.
+                                If set this limits the maximum lifetime of
+                                persistent HTTP connections.
 
 Commands:
-  help [<command>...]
+help [<command>...]
     Show help.
 
-  produce* [<flags>]
+produce* [<flags>]
     Receive remote_write requests and produce messages on the pulsar bus
 
-  consume --remote-write.url=REMOTE-WRITE.URL [<flags>]
+consume --remote-write.url=REMOTE-WRITE.URL [<flags>]
     Consume metrics on the pulsar bus and send them as remote_write requests
 
 
@@ -53,8 +55,9 @@ usage: prometheus-pulsar-remote-write produce [<flags>]
 
 Receive remote_write requests and produce messages on the pulsar bus
 
+
 Flags:
-  -h, --help                     Show context-sensitive help (also try
+  -h, --[no-]help                Show context-sensitive help (also try
                                  --help-long and --help-man).
       --log.level=info           Only log messages with the given severity or
                                  above. One of: [debug, info, warn, error]
@@ -64,7 +67,7 @@ Flags:
                                  Address to listen on for web endpoints.
       --web.telemetry-path="/metrics"  
                                  Path under which to expose metrics.
-      --web.disable-pprof        Disable the pprof tracing/debugging endpoints
+      --[no-]web.disable-pprof   Disable the pprof tracing/debugging endpoints
                                  under /debug/pprof.
       --web.max-connection-age=0s  
                                  If set this limits the maximum lifetime of
@@ -155,10 +158,10 @@ Flags:
                                  certificate used for the connection to Pulsar.
       --pulsar.client-key=""     Path to the file containing the client key used
                                  for the connection to Pulsar.
-      --pulsar.insecure-skip-tls-verify  
+      --[no-]pulsar.insecure-skip-tls-verify  
                                  Configure whether the Pulsar client accepts
                                  untrusted TLS certificate from broker.
-      --pulsar.insecure-skip-tls-validate-hostname  
+      --[no-]pulsar.insecure-skip-tls-validate-hostname  
                                  Configure whether the Pulsar client skips
                                  to verify the validity of the host name from
                                  broker.
@@ -177,8 +180,9 @@ usage: prometheus-pulsar-remote-write consume --remote-write.url=REMOTE-WRITE.UR
 
 Consume metrics on the pulsar bus and send them as remote_write requests
 
+
 Flags:
-  -h, --help                    Show context-sensitive help (also try
+  -h, --[no-]help               Show context-sensitive help (also try
                                 --help-long and --help-man).
       --log.level=info          Only log messages with the given severity or
                                 above. One of: [debug, info, warn, error]
@@ -188,7 +192,7 @@ Flags:
                                 Address to listen on for web endpoints.
       --web.telemetry-path="/metrics"  
                                 Path under which to expose metrics.
-      --web.disable-pprof       Disable the pprof tracing/debugging endpoints
+      --[no-]web.disable-pprof  Disable the pprof tracing/debugging endpoints
                                 under /debug/pprof.
       --web.max-connection-age=0s  
                                 If set this limits the maximum lifetime of
@@ -279,10 +283,10 @@ Flags:
                                 certificate used for the connection to Pulsar.
       --pulsar.client-key=""    Path to the file containing the client key used
                                 for the connection to Pulsar.
-      --pulsar.insecure-skip-tls-verify  
+      --[no-]pulsar.insecure-skip-tls-verify  
                                 Configure whether the Pulsar client accepts
                                 untrusted TLS certificate from broker.
-      --pulsar.insecure-skip-tls-validate-hostname  
+      --[no-]pulsar.insecure-skip-tls-validate-hostname  
                                 Configure whether the Pulsar client skips
                                 to verify the validity of the host name from
                                 broker.

@@ -7,7 +7,7 @@
          "commands": [
             "make verify-drone"
          ],
-         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:6a3a995d",
          "name": "make verify-drone"
       }
    ]
@@ -24,35 +24,35 @@
          "commands": [
             "make lint"
          ],
-         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:6a3a995d",
          "name": "make lint"
       },
       {
          "commands": [
             "make test"
          ],
-         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:6a3a995d",
          "name": "make test"
       },
       {
          "commands": [
             "make bench"
          ],
-         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:6a3a995d",
          "name": "make bench"
       },
       {
          "commands": [
             "make binaries"
          ],
-         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:6a3a995d",
          "name": "make binaries"
       },
       {
          "commands": [
             "make verify-readme"
          ],
-         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:6a3a995d",
          "name": "make verify-readme"
       }
    ]
@@ -82,7 +82,7 @@
          "commands": [
             "make integration TEST_PULSAR_URL=pulsar://pulsar:6650"
          ],
-         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:6a3a995d",
          "name": "make integration TEST_PULSAR_URL=pulsar://pulsar:6650"
       }
    ]
@@ -100,14 +100,14 @@
          "commands": [
             "make binaries"
          ],
-         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:6a3a995d",
          "name": "make binaries"
       },
       {
          "commands": [
             "make shas"
          ],
-         "image": "grafana/prometheus-pulsar-remote-write-build-image:c1b1dc1",
+         "image": "grafana/prometheus-pulsar-remote-write-build-image:6a3a995d",
          "name": "make shas"
       },
       {
@@ -211,6 +211,6 @@
 }
 ---
 kind: signature
-hmac: dd6884606d422cf43a9b9602a8705b7cdfd89b3130b02bd466934acbbd7cf559
+hmac: 343f000214620f954c85ad525eb889c9e722e35dc2570a9da4c8311a06a992dd
 
 ...

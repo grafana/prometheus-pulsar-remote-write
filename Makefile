@@ -5,7 +5,7 @@ BUILD_IMAGE := grafana/prometheus-pulsar-remote-write-build-image
 
 README_COMMAND := go build && { ./prometheus-pulsar-remote-write help && ./prometheus-pulsar-remote-write help produce && ./prometheus-pulsar-remote-write help consume ; } 2>&1
 
-DRONE_COMMAND := drone jsonnet --source .drone/drone.jsonnet --target /dev/stdout --stream --format=false --extVar BUILD_IMAGE=$(BUILD_IMAGE):c1b1dc1
+DRONE_COMMAND := drone jsonnet --source .drone/drone.jsonnet --target /dev/stdout --stream --format=false --extVar BUILD_IMAGE=$(BUILD_IMAGE):6a3a995d
 
 # from https://suva.sh/posts/well-documented-makefiles/
 .PHONY: help
@@ -52,11 +52,11 @@ update-drone: ## Update the drone.yml
 
 .PHONY: image
 image: ## Build docker image
-	docker build -t grafana/prometheus-pulsar-remote-write .
+	docker build --platform=linux/amd64 -t grafana/prometheus-pulsar-remote-write .
 
 .drone/drone.yml: .drone/drone.jsonnet
 	# Drones jsonnet formatting causes issues where arrays disappear
-	drone jsonnet --source $< --target --stream --format=false --extVar BUILD_IMAGE=$(BUILD_IMAGE):c1b1dc1
+	drone jsonnet --source $< --target --stream --format=false --extVar BUILD_IMAGE=$(BUILD_IMAGE):6a3a995d
 	drone sign --save grafana/prometheus-pulsar-remote-write $@.tmp
 	drone lint --trusted $@.tmp
 	# When all passes move to correct destination
@@ -79,7 +79,7 @@ shas: $(SHAS) | dist ## Produce SHA256 checksums for all go binaries
 	sha256sum $< | cut -b -64 > $@
 
 build-image/.uptodate: build-image/Dockerfile .git/refs/heads/$(GIT_BRANCH) ## Build docker image used in CI builds
-	docker build -t $(BUILD_IMAGE):$(GIT_SHA) build-image
+	docker build --platform=linux/amd64 -t $(BUILD_IMAGE):$(GIT_SHA) build-image
 	touch $@
 
 build-image/.published: build-image/.uptodate ## Publish docker image used in CI builds

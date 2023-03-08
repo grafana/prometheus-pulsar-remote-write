@@ -15,7 +15,7 @@ RUN curl -L https://github.com/golangci/golangci-lint/releases/download/v${GOLAN
 RUN echo "${GOLANGCI_LINT_CHECKSUM} golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64/golangci-lint" | sha256sum -c - || (printf "wanted: %s\n   got: %s\n" "${GOLANGCI_LINT_CHECKSUM}" "$(sha256sum golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64/golangci-lint)"; exit 1)
 RUN install -t /usr/local/bin golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64/golangci-lint
 
-FROM golang:1.20.1-bullseye as gox-builder
+FROM golang:1.20.2-bullseye as gox-builder
 ARG GOX_VERSION=1.0.1
 ARG GOX_CHECKSUM=5d67f92ba3ffdca29bcb1f381b21c9b8c4309c6b6223dab493aed4d2f34a8fa8
 RUN curl -L https://github.com/mitchellh/gox/archive/v${GOX_VERSION}.tar.gz | tar zx
@@ -23,7 +23,7 @@ RUN cd gox-"${GOX_VERSION}" && go build
 RUN echo "${GOX_CHECKSUM} gox-${GOX_VERSION}/gox" | sha256sum -c - || (printf "wanted: %s\n   got: %s\n" "${GOX_CHECKSUM}" "$(sha256sum gox-${GOX_VERSION}/gox)"; exit 1)
 RUN install -t /usr/local/bin gox-"${GOX_VERSION}"/gox
 
-FROM golang:1.20.1-bullseye
+FROM golang:1.20.2-bullseye
 COPY --from=drone-cli-builder /usr/local/bin/drone /usr/local/bin
 COPY --from=golangci-lint-builder /usr/local/bin/golangci-lint /usr/local/bin
 COPY --from=gox-builder /usr/local/bin/gox /usr/local/bin

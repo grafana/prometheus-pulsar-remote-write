@@ -52,7 +52,7 @@ update-drone: ## Update the drone.yml
 
 .PHONY: image
 image: ## Build docker image
-	docker build -t grafana/prometheus-pulsar-remote-write .
+	docker build --platform=linux/amd64 -t grafana/prometheus-pulsar-remote-write .
 
 .drone/drone.yml: .drone/drone.jsonnet
 	# Drones jsonnet formatting causes issues where arrays disappear
@@ -79,7 +79,7 @@ shas: $(SHAS) | dist ## Produce SHA256 checksums for all go binaries
 	sha256sum $< | cut -b -64 > $@
 
 build-image/.uptodate: build-image/Dockerfile .git/refs/heads/$(GIT_BRANCH) ## Build docker image used in CI builds
-	docker build -t $(BUILD_IMAGE):$(GIT_SHA) build-image
+	docker build --platform=linux/amd64 -t $(BUILD_IMAGE):$(GIT_SHA) build-image
 	touch $@
 
 build-image/.published: build-image/.uptodate ## Publish docker image used in CI builds

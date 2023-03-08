@@ -160,7 +160,7 @@ func (c *Client) Close() error {
 type ReceivedSample struct {
 	Sample  *model.Sample
 	Context context.Context
-	Ack     func()
+	Ack     func() error
 	Nack    func()
 }
 
@@ -196,7 +196,7 @@ func (c *Client) Receiver(ctx context.Context, sampleCh chan ReceivedSample) (do
 						"payload", string(payload),
 					)
 					// ack the message, as the payload is immutable, it will not become correct in the future.
-					consumer.AckID(id)
+					_ = consumer.AckID(id)
 					continue
 				}
 
@@ -205,8 +205,8 @@ func (c *Client) Receiver(ctx context.Context, sampleCh chan ReceivedSample) (do
 					Nack: func() {
 						consumer.NackID(id)
 					},
-					Ack: func() {
-						consumer.AckID(id)
+					Ack: func() error {
+						return consumer.AckID(id)
 					},
 					Sample: &model.Sample{
 						Metric:    sample.Metric,

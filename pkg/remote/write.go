@@ -222,7 +222,9 @@ receive:
 			// ack all the messages, for both successes and non-recoverable
 			// errors, as otherwise they would get redelivered through pulsar
 			for _, s := range samples {
-				s.Ack()
+				if err := s.Ack(); err != nil {
+					_ = level.Error(w.logger).Log("msg", "failed to ack sample", "error", err)
+				}
 			}
 
 			// Add all samples to the total number written since they've been successfully

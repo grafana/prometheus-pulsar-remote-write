@@ -145,7 +145,7 @@ func (cfg *pulsarConfig) client(logger log.Logger, opts ...pulsarClientOpts) (*p
 		opt(&config)
 	}
 
-	if reflect.ValueOf(config).IsZero() {
+	if reflect.ValueOf(config.ClientOptions).IsZero() {
 		clientOptions, err := cfg.clientOptions()
 		if err != nil {
 			return nil, err

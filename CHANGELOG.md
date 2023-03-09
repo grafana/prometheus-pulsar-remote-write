@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 / 2023-03-09
+
+* [CHANGE] Update all dependencies to their latest versions. #44
+* [CHANGE] Update to Go 1.20 for builds. #47
+
 ## 0.2.0 / 2020-12-23
 
 * [FEATURE] Add consume mode, which consumes metrics on the pulsar bus and send them as remote_write requests. #34

@@ -3,10 +3,11 @@ package app
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 
 	"github.com/grafana/prometheus-pulsar-remote-write/pkg/pulsar"
 )
@@ -144,7 +145,7 @@ func (cfg *pulsarConfig) client(logger log.Logger, opts ...pulsarClientOpts) (*p
 		opt(&config)
 	}
 
-	if config.ClientOptions == (pulsar.ClientOptions{}) {
+	if reflect.ValueOf(config.ClientOptions).IsZero() {
 		clientOptions, err := cfg.clientOptions()
 		if err != nil {
 			return nil, err

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/linkedin/goavro"
+	"github.com/linkedin/goavro/v2"
 	"github.com/prometheus/common/model"
 )
 

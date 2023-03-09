@@ -80,10 +80,8 @@ func withTenantID(s pulsar.ReceivedSample, tenantID string) pulsar.ReceivedSampl
 
 func newBaseSample() pulsar.ReceivedSample {
 	return pulsar.ReceivedSample{
-		Ack: func() {
-		},
-		Nack: func() {
-		},
+		Ack:     func() error { return nil },
+		Nack:    func() {},
 		Context: context.Background(),
 	}
 }

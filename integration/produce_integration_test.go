@@ -193,7 +193,7 @@ func (ti *testProduceIntegration) test(t *testing.T) {
 			f(msg)
 		}
 
-		consumer.Ack(msg)
+		assert.NoError(t, consumer.Ack(msg))
 	}
 
 	// Check the number of metrics incremented during this test (for produce mode, we expect
